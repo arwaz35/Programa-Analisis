@@ -123,6 +123,7 @@ class ExcelReporter:
             ws[cells.get("placa", "N9")] = moto.get('Placa', '')
             ws[cells.get("chasis", "N10")] = moto.get('Chasis', '')
             ws[cells.get("motor", "N11")] = moto.get('Motor', '')
+            ws[cells.get("origen", "N8")] = moto.get('Origen', '')
             ws[cells.get("comentarios", "A24")] = preview_data.get('comments', '')
 
             # ── FOTO DE MOTO ──

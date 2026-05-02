@@ -21,36 +21,39 @@ def show_gestion_lugares(app):
     for i, h in enumerate(headers):
         ctk.CTkLabel(header_f, text=h, width=widths[i], font=("Arial", 12, "bold")).pack(side="left", padx=2)
 
-    selected = {'val': None, 'widget': None}
+    selected = {'val': None, 'widget': None, 'lugar': None}
 
     def refresh_table():
         for w in table_frame.winfo_children():
             if w != header_f:
                 w.destroy()
         lugares = app.data_handler.load_lugares()
-        selected['val'], selected['widget'] = None, None
+        selected['val'], selected['widget'], selected['lugar'] = None, None, None
         btn_del.configure(state="disabled")
+        btn_upd.configure(state="disabled")
 
-        def select_row(idx, row_w):
+        def select_row(idx, lugar_data, row_w):
             if selected['widget']:
                 try:
                     selected['widget'].configure(fg_color=["gray86", "gray17"])
                 except Exception:
                     pass
             selected['val'] = idx
+            selected['lugar'] = lugar_data
             selected['widget'] = row_w
             row_w.configure(fg_color=["#3B8ED0", "#1F6AA5"])
             btn_del.configure(state="normal")
+            btn_upd.configure(state="normal")
 
         for i, l in enumerate(lugares):
             row = ctk.CTkFrame(table_frame)
             row.pack(fill="x", pady=1)
-            row.bind("<Button-1>", lambda e, x=i, r=row: select_row(x, r))
+            row.bind("<Button-1>", lambda e, x=i, ld=l, r=row: select_row(x, ld, r))
             vals = [l.get('Nombre', ''), l.get('Altitud (msnm)', ''), l.get('Coordenadas (Lat, Lon)', '')]
             for j, v in enumerate(vals):
                 lbl = ctk.CTkLabel(row, text=v, width=widths[j])
                 lbl.pack(side="left", padx=2)
-                lbl.bind("<Button-1>", lambda e, x=i, r=row: select_row(x, r))
+                lbl.bind("<Button-1>", lambda e, x=i, ld=l, r=row: select_row(x, ld, r))
 
     ctrl = ctk.CTkFrame(app, fg_color="transparent")
     ctrl.pack(fill="x", padx=20, pady=10)
@@ -80,15 +83,55 @@ def show_gestion_lugares(app):
             win.destroy()
         ctk.CTkButton(win, text="Guardar", command=save).pack(pady=20)
 
+    def update_lugar():
+        """Actualiza los datos del lugar seleccionado."""
+        if selected['val'] is None or selected['lugar'] is None:
+            return
+        win = ctk.CTkToplevel(app)
+        win.title("Actualizar Lugar")
+        win.geometry("400x300")
+        win.attributes("-topmost", True)
+
+        old_lugar = selected['lugar']
+        old_idx = selected['val']
+
+        fields = ["Nombre", "Altitud (msnm)", "Coordenadas (Lat, Lon)"]
+        entries = {}
+        for f in fields:
+            r = ctk.CTkFrame(win)
+            r.pack(fill="x", padx=10, pady=10)
+            ctk.CTkLabel(r, text=f).pack(side="left", padx=5)
+            e = ctk.CTkEntry(r)
+            e.pack(side="right", fill="x", expand=True, padx=5)
+            e.insert(0, str(old_lugar.get(f, '')))
+            entries[f] = e
+
+        def save():
+            data = {f: entries[f].get() for f in fields}
+            if not data['Nombre']:
+                messagebox.showerror("Error", "Nombre es obligatorio", parent=win)
+                return
+            app.data_handler.update_lugar(old_idx, data)
+            refresh_table()
+            win.destroy()
+
+        ctk.CTkButton(win, text="Actualizar", command=save).pack(pady=20)
+
     def delete_lugar():
         if selected['val'] is not None:
             if messagebox.askyesno("Confirmar", "¿Eliminar lugar seleccionado?"):
                 app.data_handler.delete_lugar(selected['val'])
                 refresh_table()
 
-    ctk.CTkButton(ctrl, text="Agregar Lugar", font=("Arial", 14, "bold"), command=add_lugar).pack(side="left", padx=10)
+    ctk.CTkButton(ctrl, text="Agregar Lugar", font=("Arial", 14, "bold"),
+                  command=add_lugar).pack(side="left", padx=10)
+    btn_upd = ctk.CTkButton(ctrl, text="Actualizar Datos", font=("Arial", 14, "bold"),
+                            fg_color="#F29F05", hover_color="#C27A04", text_color="black",
+                            state="disabled", command=update_lugar)
+    btn_upd.pack(side="left", padx=10)
     btn_del = ctk.CTkButton(ctrl, text="Eliminar Lugar", font=("Arial", 14, "bold"),
-                            fg_color="red", hover_color="darkred", state="disabled", command=delete_lugar)
+                            fg_color="red", hover_color="darkred", state="disabled",
+                            command=delete_lugar)
     btn_del.pack(side="right", padx=10)
 
     bottom = ctk.CTkFrame(app, fg_color="transparent")

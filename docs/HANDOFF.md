@@ -11,7 +11,7 @@
 |---|---|
 | **Proyecto** | Programa Análisis — INCOL |
 | **Ruta** | `Programa Analisis/` |
-| **Versión actual** | 0.0.4 |
+| **Versión actual** | 0.0.5 |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje** | Python 3 |
 | **Framework UI** | CustomTkinter |
@@ -166,3 +166,19 @@ pandas, numpy, matplotlib, customtkinter, staticmap, Pillow, openpyxl
 - `ui/management/pilotos_view.py` & `motos_view.py` → Rediseño de lógica de visualización de fotos.
 - `reports/excel_reporter.py` → Corrección de imports y lógica de inserción de fotos.
 - `version.py` → 0.0.4
+
+---
+
+### v0.0.5 — Edición de motos y lugares (2026-05-01)
+
+**Funcionalidad nueva:** Se agregó la capacidad de modificar registros existentes de motocicletas y lugares, igualando la funcionalidad que ya existía en la gestión de pilotos.
+
+- Botón **"Actualizar Datos"** (amarillo) aparece en motos y lugares al seleccionar un registro.
+- El formulario de actualización se abre prellenado con los datos actuales.
+- En motos, si se cambia el nombre/placa, la foto se renombra automáticamente.
+
+**Archivos modificados:**
+- `data_handler.py` → Nuevo método `update_lugar(index, lugar_data)`
+- `ui/management/motos_view.py` → Función `update_moto()` + botón `btn_upd`
+- `ui/management/lugares_view.py` → Función `update_lugar()` + botón `btn_upd`, refactorización de `select_row` para guardar datos del lugar seleccionado
+- `version.py` → 0.0.5

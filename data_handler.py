@@ -131,3 +131,9 @@ class DataHandler:
         if 0 <= index < len(lugares):
             del lugares[index]
             self.save_lugares(lugares)
+
+    def update_lugar(self, index, lugar_data):
+        lugares = self.load_lugares()
+        if 0 <= index < len(lugares):
+            lugares[index] = lugar_data
+            self.save_lugares(lugares)

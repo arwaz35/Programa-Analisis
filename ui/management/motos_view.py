@@ -150,6 +150,7 @@ def show_gestion_motos(app):
         selected['val'], selected['widget'], selected['moto'] = None, None, None
         btn_del.configure(state="disabled")
         btn_foto.configure(state="disabled")
+        btn_upd.configure(state="disabled")
 
         # Limpiar panel de foto
         photo_label.configure(image=None, text="Seleccione una moto\npara ver su foto")
@@ -168,6 +169,7 @@ def show_gestion_motos(app):
             row_w.configure(fg_color=["#3B8ED0", "#1F6AA5"])
             btn_del.configure(state="normal")
             btn_foto.configure(state="normal")
+            btn_upd.configure(state="normal")
             _show_photo(moto_data)
 
         for i, m in enumerate(motos):
@@ -268,6 +270,55 @@ def show_gestion_motos(app):
             except Exception as e:
                 messagebox.showerror("Error", f"Error asignando foto:\n{e}")
 
+    def update_moto():
+        """Actualiza los datos de la moto seleccionada."""
+        if selected['val'] is None or selected['moto'] is None:
+            return
+        win = ctk.CTkToplevel(app)
+        win.title("Actualizar Motocicleta")
+        win.geometry("400x700")
+        win.attributes("-topmost", True)
+
+        old_moto = selected['moto']
+        old_idx = selected['val']
+
+        fields = ["Fecha", "Nombre Comercial", "Placa", "Código Modelo", "Origen",
+                  "Chasis", "Motor", "Cilindraje (cc)", "Peso (Kg)", "Potencia (Hp)", "Torque (Nm)"]
+        entries = {}
+        for f in fields:
+            r = ctk.CTkFrame(win)
+            r.pack(fill="x", padx=10, pady=5)
+            ctk.CTkLabel(r, text=f).pack(side="left", padx=5)
+            e = ctk.CTkEntry(r)
+            e.pack(side="right", fill="x", expand=True, padx=5)
+            e.insert(0, str(old_moto.get(f, '')))
+            entries[f] = e
+
+        def save():
+            data = {f: entries[f].get() for f in fields}
+
+            # Si cambió nombre/placa, renombrar foto
+            old_key = _get_moto_foto_key(old_moto)
+            new_key = f"{data.get('Nombre Comercial', '')} {data.get('Placa', '')}".strip()
+            if not data.get('Placa'):
+                new_key = data.get('Nombre Comercial', '')
+
+            if old_key != new_key:
+                old_foto = get_moto_foto_path(old_moto)
+                if old_foto and os.path.exists(old_foto):
+                    ext = os.path.splitext(old_foto)[1]
+                    new_foto = os.path.join(MOTOS_FOTOS_DIR, new_key + ext)
+                    try:
+                        os.rename(old_foto, new_foto)
+                    except Exception as e:
+                        print(f"Error renombrando foto de moto: {e}")
+
+            app.data_handler.update_moto(old_idx, data)
+            refresh_table()
+            win.destroy()
+
+        ctk.CTkButton(win, text="Actualizar", command=save).pack(pady=20)
+
     def delete_moto():
         if selected['val'] is not None:
             if messagebox.askyesno("Confirmar", "¿Eliminar motocicleta seleccionada?"):
@@ -280,6 +331,10 @@ def show_gestion_motos(app):
                              fg_color="#2196F3", hover_color="#1976D2",
                              state="disabled", command=assign_foto)
     btn_foto.pack(side="left", padx=10)
+    btn_upd = ctk.CTkButton(ctrl, text="Actualizar Datos", font=("Arial", 14, "bold"),
+                            fg_color="#F29F05", hover_color="#C27A04", text_color="black",
+                            state="disabled", command=update_moto)
+    btn_upd.pack(side="left", padx=10)
     btn_del = ctk.CTkButton(ctrl, text="Eliminar Moto", font=("Arial", 14, "bold"),
                             fg_color="red", hover_color="darkred", state="disabled",
                             command=delete_moto)
