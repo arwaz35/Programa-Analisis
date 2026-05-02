@@ -139,8 +139,8 @@ class ExcelReporter:
             ws[cells.get("piloto_altura", "B32")] = self._fmt(inputs.get('altura', ''), 0)
 
             # ── FOTO DE PILOTO ──
-            from ui.management.pilotos_view import _get_foto_path
-            piloto_foto = _get_foto_path(inputs.get('pilot', ''))
+            from ui.management.pilotos_view import get_piloto_foto_path
+            piloto_foto = get_piloto_foto_path(inputs.get('pilot', ''))
             if piloto_foto:
                 self._insert_image_from_file(ws, piloto_foto,
                                             cells.get("piloto_foto", "B34"),

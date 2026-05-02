@@ -11,5 +11,18 @@
         "Peso (Kg)": "109",
         "Potencia (Hp)": "8.85",
         "Torque (Nm)": "9.5"
+    },
+    {
+        "Fecha": "01/05/2026",
+        "Nombre Comercial": "Crypton FINN",
+        "Placa": "AAA11A",
+        "Código Modelo": "QWE1",
+        "Origen": "INCOL",
+        "Chasis": "QWERTY123456789",
+        "Motor": "QWERTY123456789",
+        "Cilindraje (cc)": "115",
+        "Peso (Kg)": "100",
+        "Potencia (Hp)": "8.85",
+        "Torque (Nm)": "9.2"
     }
 ]

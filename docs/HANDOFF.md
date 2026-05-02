@@ -11,7 +11,7 @@
 |---|---|
 | **Proyecto** | Programa Análisis — INCOL |
 | **Ruta** | `Programa Analisis/` |
-| **Versión actual** | 0.0.1 |
+| **Versión actual** | 0.0.4 |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje** | Python 3 |
 | **Framework UI** | CustomTkinter |
@@ -140,3 +140,29 @@ pandas, numpy, matplotlib, customtkinter, staticmap, Pillow, openpyxl
   - Foto de moto → celda `Y7` (si disponible)
   - Foto de piloto → celda `B34` (si disponible)
   - Nuevo método `_insert_image_from_file()` para insertar imágenes desde disco
+
+---
+
+### v0.0.3 — Bugfix foto persistente (2026-05-01)
+
+**Bug corregido:** Al seleccionar un piloto/moto con foto y luego seleccionar uno sin foto, la imagen anterior permanecía visible. Se corrigió limpiando la referencia `_ctk_image = None` en los bloques `else` y `except` de `_show_photo()`.
+
+**Archivos modificados:**
+
+- `ui/management/motos_view.py` → Limpieza de `_ctk_image` cuando no hay foto
+- `version.py` → 0.0.3
+
+---
+
+### v0.0.4 — Estabilización y Git (2026-05-01)
+
+**Mejoras técnicas:**
+- **Git independiente:** Se inicializó un repositorio Git exclusivo para `Programa Analisis` para no mezclarlo con versiones anteriores.
+- **Dependencias:** Se instaló `openpyxl` para habilitar la generación de reportes Excel.
+- **Fix Crítico (TclError):** Se corrigió el error `image "pyimageX" doesn't exist` al cambiar fotos. Ahora el label de imagen se destruye y recrea en cada selección para asegurar que CustomTkinter no pierda las referencias internas.
+- **Fix Importación:** Se movieron `get_moto_foto_path` y `get_piloto_foto_path` a nivel de módulo en sus respectivas vistas para permitir que `excel_reporter.py` las importe y use al generar el informe.
+
+**Archivos modificados:**
+- `ui/management/pilotos_view.py` & `motos_view.py` → Rediseño de lógica de visualización de fotos.
+- `reports/excel_reporter.py` → Corrección de imports y lógica de inserción de fotos.
+- `version.py` → 0.0.4

@@ -99,6 +99,8 @@ def show_gestion_motos(app):
 
     def _show_photo(moto):
         """Muestra la foto de la moto en el panel derecho."""
+        nonlocal photo_label
+
         nombre = moto.get('Nombre Comercial', '')
         moto_name_label.configure(text=nombre)
 
@@ -111,6 +113,9 @@ def show_gestion_motos(app):
             info_parts.append(f"Origen: {moto['Origen']}")
         moto_info_label.configure(text="  |  ".join(info_parts))
 
+        # Destruir label anterior y crear uno nuevo para evitar TclError
+        photo_label.destroy()
+
         foto_path = get_moto_foto_path(moto)
         if foto_path and os.path.exists(foto_path):
             try:
@@ -122,12 +127,20 @@ def show_gestion_motos(app):
 
                 ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img,
                                        size=(new_w, new_h))
-                photo_label.configure(image=ctk_img, text="")
-                photo_label._ctk_image = ctk_img  # Mantener referencia
-            except Exception as e:
-                photo_label.configure(image=None, text=f"Error cargando foto:\n{e}")
+                photo_label = ctk.CTkLabel(right_frame, image=ctk_img, text="",
+                                           width=260, height=250)
+                photo_label._ctk_image = ctk_img
+            except Exception:
+                photo_label = ctk.CTkLabel(right_frame, text="Error cargando foto",
+                                           font=("Arial", 12), text_color="red",
+                                           width=260, height=250)
         else:
-            photo_label.configure(image=None, text="Sin foto asignada\n\nUse '📷 Asignar Foto'\npara agregar una")
+            photo_label = ctk.CTkLabel(right_frame, text="Sin foto asignada\n\nUse '📷 Asignar Foto'\npara agregar una",
+                                       font=("Arial", 12), text_color="gray",
+                                       width=260, height=250)
+
+        # Insertar después del título pero antes de los labels de info
+        photo_label.pack(pady=10, padx=20, before=moto_name_label)
 
     def refresh_table():
         for w in table_frame.winfo_children():

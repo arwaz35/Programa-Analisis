@@ -11,6 +11,27 @@ import shutil
 from config import PILOTOS_FOTOS_DIR
 
 
+def get_piloto_foto_path(nombre):
+    """
+    Busca la foto del piloto en la carpeta de fotos.
+    Retorna la ruta completa o None.
+    Función a nivel de módulo para poder importarla desde excel_reporter.
+    """
+    if not nombre:
+        return None
+    for ext in ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG']:
+        path = os.path.join(PILOTOS_FOTOS_DIR, nombre + ext)
+        if os.path.exists(path):
+            return path
+    # Buscar por nombre parcial
+    if os.path.exists(PILOTOS_FOTOS_DIR):
+        for f in os.listdir(PILOTOS_FOTOS_DIR):
+            name_part = os.path.splitext(f)[0]
+            if nombre.lower() in name_part.lower():
+                return os.path.join(PILOTOS_FOTOS_DIR, f)
+    return None
+
+
 def show_gestion_pilotos(app):
     """Muestra la vista de gestión de pilotos."""
     app.clear_window()
@@ -56,33 +77,22 @@ def show_gestion_pilotos(app):
     pilot_info_label = ctk.CTkLabel(right_frame, text="", font=("Arial", 12), text_color="gray")
     pilot_info_label.pack(pady=5)
 
-    selected = {'nombre': None, 'widget': None, 'peso': 0, 'altura': 0, 'foto': ''}
-
-    def _get_foto_path(nombre):
-        """Busca la foto del piloto en la carpeta de fotos."""
-        if not nombre:
-            return None
-        for ext in ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG']:
-            path = os.path.join(PILOTOS_FOTOS_DIR, nombre + ext)
-            if os.path.exists(path):
-                return path
-        # Buscar por nombre parcial
-        for f in os.listdir(PILOTOS_FOTOS_DIR):
-            name_part = os.path.splitext(f)[0]
-            if nombre.lower() in name_part.lower():
-                return os.path.join(PILOTOS_FOTOS_DIR, f)
-        return None
+    selected = {'nombre': None, 'widget': None, 'peso': 0, 'altura': 0}
 
     def _show_photo(nombre, peso=0, altura=0):
         """Muestra la foto del piloto en el panel derecho."""
+        nonlocal photo_label
+
         pilot_name_label.configure(text=nombre)
         pilot_info_label.configure(text=f"Peso: {peso} Kg  |  Altura: {altura} cm")
 
-        foto_path = _get_foto_path(nombre)
+        # Destruir label anterior y crear uno nuevo para evitar TclError
+        photo_label.destroy()
+
+        foto_path = get_piloto_foto_path(nombre)
         if foto_path and os.path.exists(foto_path):
             try:
                 pil_img = Image.open(foto_path)
-                # Redimensionar manteniendo aspecto, máximo 260x300
                 max_w, max_h = 260, 300
                 ratio = min(max_w / pil_img.width, max_h / pil_img.height)
                 new_w = int(pil_img.width * ratio)
@@ -90,12 +100,19 @@ def show_gestion_pilotos(app):
 
                 ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img,
                                        size=(new_w, new_h))
-                photo_label.configure(image=ctk_img, text="")
-                photo_label._ctk_image = ctk_img  # Mantener referencia
-            except Exception as e:
-                photo_label.configure(image=None, text=f"Error cargando foto:\n{e}")
+                photo_label = ctk.CTkLabel(right_frame, image=ctk_img, text="",
+                                           width=260, height=300)
+                photo_label._ctk_image = ctk_img
+            except Exception:
+                photo_label = ctk.CTkLabel(right_frame, text="Error cargando foto",
+                                           font=("Arial", 12), text_color="red",
+                                           width=260, height=300)
         else:
-            photo_label.configure(image=None, text="Sin foto asignada\n\nUse 'Asignar Foto'\npara agregar una")
+            photo_label = ctk.CTkLabel(right_frame, text="Sin foto asignada\n\nUse 'Asignar Foto'\npara agregar una",
+                                       font=("Arial", 12), text_color="gray",
+                                       width=260, height=300)
+
+        photo_label.pack(pady=10, padx=20, before=pilot_name_label)
 
     def refresh_table():
         for w in table_frame.winfo_children():
@@ -106,11 +123,6 @@ def show_gestion_pilotos(app):
         btn_del.configure(state="disabled")
         btn_upd.configure(state="disabled")
         btn_foto.configure(state="disabled")
-
-        # Limpiar panel de foto
-        photo_label.configure(image=None, text="Seleccione un piloto\npara ver su foto")
-        pilot_name_label.configure(text="")
-        pilot_info_label.configure(text="")
 
         def select_row(nombre, peso, altura, row_w):
             if selected['widget']:
@@ -134,7 +146,7 @@ def show_gestion_pilotos(app):
             nom = p.get('nombre', '')
             pes = p.get('peso', 0)
             alt = p.get('altura', 0)
-            has_foto = "✅" if _get_foto_path(nom) else "❌"
+            has_foto = "✅" if get_piloto_foto_path(nom) else "❌"
             row.bind("<Button-1>", lambda e, n=nom, w=pes, a=alt, r=row: select_row(n, w, a, r))
             for j, v in enumerate([nom, str(pes), str(alt), has_foto]):
                 lbl = ctk.CTkLabel(row, text=v, width=widths[j])
@@ -218,7 +230,7 @@ def show_gestion_pilotos(app):
             dest = os.path.join(PILOTOS_FOTOS_DIR, selected['nombre'] + ext)
             try:
                 # Eliminar foto anterior si existe con extensión diferente
-                old_foto = _get_foto_path(selected['nombre'])
+                old_foto = get_piloto_foto_path(selected['nombre'])
                 if old_foto and os.path.exists(old_foto) and old_foto != dest:
                     os.remove(old_foto)
                 shutil.copy2(f, dest)
@@ -262,7 +274,7 @@ def show_gestion_pilotos(app):
 
             # Si cambió el nombre, renombrar la foto
             if npm != old[0]:
-                old_foto = _get_foto_path(old[0])
+                old_foto = get_piloto_foto_path(old[0])
                 if old_foto and os.path.exists(old_foto):
                     ext = os.path.splitext(old_foto)[1]
                     new_foto = os.path.join(PILOTOS_FOTOS_DIR, npm + ext)

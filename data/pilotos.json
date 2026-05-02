@@ -3,5 +3,10 @@
         "nombre": "Alexander Gomez",
         "peso": 85.0,
         "altura": 190.0
+    },
+    {
+        "nombre": "Daniel Velasquez",
+        "peso": 75.0,
+        "altura": 180.0
     }
 ]
