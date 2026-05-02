@@ -1,0 +1,7 @@
+pandas
+numpy
+matplotlib
+customtkinter
+staticmap
+Pillow
+openpyxl

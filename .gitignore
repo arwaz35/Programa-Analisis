@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtualenv
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# Datos del programa (opcional: si no quieres subir tus bases de datos JSON de prueba)
+# data/*.json
+
+# Resultados
+# Para no subir los reportes generados
+Resultados/
