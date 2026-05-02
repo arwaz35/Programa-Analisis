@@ -2,7 +2,7 @@
 Programa Análisis de Datos - INCOL
 Punto de entrada principal.
 
-Versión 0.0.1
+Versión 0.0.6
 """
 import sys
 import os
@@ -32,6 +32,13 @@ class App(ctk.CTk):
         self.title(f"INCOL - Análisis de Datos v{VERSION}")
         self.geometry("1200x700")
         ctk.set_appearance_mode("light")
+
+        # Forzar que la ventana aparezca en primer plano (especial para macOS)
+        self.lift()
+        self.attributes('-topmost', True)
+        self.after(200, lambda: self.attributes('-topmost', False))
+        if sys.platform == 'darwin':
+            os.system(f'''/usr/bin/osascript -e 'tell app "System Events" to set frontmost of first process whose unix id is {os.getpid()} to true' ''')
 
         # Inicializar
         ensure_directories()
