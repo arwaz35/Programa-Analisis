@@ -122,3 +122,21 @@ pandas, numpy, matplotlib, customtkinter, staticmap, Pillow, openpyxl
   - La foto se copia a `../Pilotos/{NombrePiloto}.ext`
   - Al renombrar un piloto, la foto se renombra automáticamente
 
+---
+
+### Fotos de motos + inserción en Excel (2026-05-01)
+
+**Archivos modificados:**
+
+- `config.py` → Agregada ruta `MOTOS_FOTOS_DIR` apuntando a `../Motos/`
+- `ui/management/motos_view.py` → Rediseñada con:
+  - Layout de 2 columnas: tabla (izquierda) + panel de foto (derecha)
+  - Columna "Foto" en tabla con indicador ✅/❌
+  - Previsualización de foto al seleccionar una moto
+  - Botón "📷 Asignar Foto" para asignar/cambiar foto
+  - La foto se copia a `../Motos/{NombreComercial Placa}.ext`
+  - Función `get_moto_foto_path()` exportada para uso en el excel_reporter
+- `reports/excel_reporter.py` → Inserción automática de:
+  - Foto de moto → celda `Y7` (si disponible)
+  - Foto de piloto → celda `B34` (si disponible)
+  - Nuevo método `_insert_image_from_file()` para insertar imágenes desde disco

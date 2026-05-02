@@ -32,6 +32,9 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # Carpeta de fotos de pilotos
 PILOTOS_FOTOS_DIR = os.path.join(PROJECT_DIR, "Pilotos")
 
+# Carpeta de fotos de motos
+MOTOS_FOTOS_DIR = os.path.join(PROJECT_DIR, "Motos")
+
 # ══════════════════════════════════════════════════
 # CONSTANTES FÍSICAS Y DE MUESTREO
 # ══════════════════════════════════════════════════

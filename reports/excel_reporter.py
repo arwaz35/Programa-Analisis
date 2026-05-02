@@ -8,7 +8,7 @@ import openpyxl
 from openpyxl.drawing.image import Image as OpenpyxlImage
 import pandas as pd
 from PIL import Image
-from config import FORMATOS_DIR, RESULTADOS_DIR
+from config import FORMATOS_DIR, RESULTADOS_DIR, PILOTOS_FOTOS_DIR, MOTOS_FOTOS_DIR
 
 
 class ExcelReporter:
@@ -55,6 +55,35 @@ class ExcelReporter:
         except Exception as e:
             print(f"Error insertando imagen en {cell}: {e}")
 
+    def _insert_image_from_file(self, ws, filepath, cell, width_cm=None, height_cm=None):
+        """
+        Inserta una imagen desde un archivo en disco en una celda del worksheet.
+        Se usa para fotos de moto y piloto.
+        """
+        if not filepath or not os.path.exists(filepath):
+            return
+
+        try:
+            pil_img = Image.open(filepath)
+            img_buf = io.BytesIO()
+            pil_img.save(img_buf, format='PNG')
+            img_buf.seek(0)
+
+            xl_img = OpenpyxlImage(img_buf)
+
+            if width_cm and height_cm:
+                xl_img.width = width_cm / 2.54 * 72
+                xl_img.height = height_cm / 2.54 * 72
+            elif width_cm:
+                orig_w, orig_h = pil_img.size
+                ratio = orig_h / orig_w
+                xl_img.width = width_cm / 2.54 * 72
+                xl_img.height = xl_img.width * ratio
+
+            ws.add_image(xl_img, cell)
+        except Exception as e:
+            print(f"Error insertando imagen de archivo {filepath} en {cell}: {e}")
+
     @staticmethod
     def _fmt(val, dec=2):
         """Formatea un valor numérico."""
@@ -96,10 +125,26 @@ class ExcelReporter:
             ws[cells.get("motor", "N11")] = moto.get('Motor', '')
             ws[cells.get("comentarios", "A24")] = preview_data.get('comments', '')
 
+            # ── FOTO DE MOTO ──
+            from ui.management.motos_view import get_moto_foto_path
+            moto_foto = get_moto_foto_path(moto)
+            if moto_foto:
+                self._insert_image_from_file(ws, moto_foto,
+                                            cells.get("foto_moto", "Y7"),
+                                            width_cm=5.0)
+
             # ── CONDICIONES ──
             ws[cells.get("piloto_nombre", "B30")] = inputs.get('pilot', '')
             ws[cells.get("piloto_peso", "B31")] = self._fmt(inputs.get('weight', ''), 0)
             ws[cells.get("piloto_altura", "B32")] = self._fmt(inputs.get('altura', ''), 0)
+
+            # ── FOTO DE PILOTO ──
+            from ui.management.pilotos_view import _get_foto_path
+            piloto_foto = _get_foto_path(inputs.get('pilot', ''))
+            if piloto_foto:
+                self._insert_image_from_file(ws, piloto_foto,
+                                            cells.get("piloto_foto", "B34"),
+                                            width_cm=5.0)
 
             ws[cells.get("lugar_nombre", "W30")] = lugar.get('Nombre', '')
             if ctx:

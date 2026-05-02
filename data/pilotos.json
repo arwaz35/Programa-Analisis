@@ -1,1 +1,7 @@
-[]
+[
+    {
+        "nombre": "Alexander Gomez",
+        "peso": 85.0,
+        "altura": 190.0
+    }
+]

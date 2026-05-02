@@ -1,1 +1,15 @@
-[]
+[
+    {
+        "Fecha": "01/05/2026",
+        "Nombre Comercial": "PG1",
+        "Placa": "TL12L",
+        "Código Modelo": "ABC1",
+        "Origen": "INCOL",
+        "Chasis": "ABCDEFG123456789",
+        "Motor": "ABCDEFG123456789",
+        "Cilindraje (cc)": "115",
+        "Peso (Kg)": "109",
+        "Potencia (Hp)": "8.85",
+        "Torque (Nm)": "9.5"
+    }
+]
