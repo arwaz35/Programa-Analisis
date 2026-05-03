@@ -2,7 +2,7 @@
 Programa Análisis de Datos - INCOL
 Punto de entrada principal.
 
-Versión 0.0.6
+Versión 0.0.8
 """
 import sys
 import os
@@ -83,9 +83,9 @@ class App(ctk.CTk):
         mgmt.pack(pady=20)
 
         btns = [
-            ("🏍 Gestión de Motos", "#F29F05", "#C27A04", lambda: show_gestion_motos(self)),
+            ("🏍 Gestión de Motos", "#4CAF50", "#388E3C", lambda: show_gestion_motos(self)),
             ("👤 Gestión de Pilotos", "#4CAF50", "#388E3C", lambda: show_gestion_pilotos(self)),
-            ("📍 Gestión de Lugares", "#9C27B0", "#7B1FA2", lambda: show_gestion_lugares(self)),
+            ("📍 Gestión de Lugares", "#4CAF50", "#388E3C", lambda: show_gestion_lugares(self)),
         ]
         for txt, fg, hv, cmd in btns:
             ctk.CTkButton(mgmt, text=txt, font=("Arial", 14, "bold"),
@@ -130,9 +130,9 @@ class App(ctk.CTk):
 
         test_types = [
             ("Aceleración y Recuperación", "#2196F3", "#1976D2", "accel"),
-            ("Frenado", "#FF5722", "#E64A19", "brake"),
-            ("Ascenso", "#4CAF50", "#388E3C", "climb"),
-            ("Velocidad Máxima", "#9C27B0", "#7B1FA2", "topspeed"),
+            ("Frenado", "#2196F3", "#1976D2", "brake"),
+            ("Ascenso", "#2196F3", "#1976D2", "climb"),
+            ("Velocidad Máxima", "#2196F3", "#1976D2", "topspeed"),
         ]
         for txt, fg, hv, key in test_types:
             ctk.CTkButton(left, text=txt, font=("Arial", 13, "bold"),
