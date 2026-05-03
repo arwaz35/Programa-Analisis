@@ -30,7 +30,7 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title(f"INCOL - Análisis de Datos v{VERSION}")
-        self.geometry("1200x700")
+        self.geometry("1200x750")
         ctk.set_appearance_mode("light")
 
         # Forzar que la ventana aparezca en primer plano (especial para macOS)
@@ -112,7 +112,7 @@ class App(ctk.CTk):
         main_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
         # Columna izquierda: controles
-        left = ctk.CTkFrame(main_frame, width=350)
+        left = ctk.CTkFrame(main_frame, width=320)
         left.pack(side="left", fill="y", padx=10, pady=5)
         left.pack_propagate(False)
 
@@ -122,7 +122,7 @@ class App(ctk.CTk):
         lugar_names = [l.get('Nombre', '') for l in lugares]
         if not lugar_names:
             lugar_names = ["Sin lugares registrados"]
-        self.lugar_combo = ctk.CTkComboBox(left, values=lugar_names, width=300)
+        self.lugar_combo = ctk.CTkComboBox(left, values=lugar_names, width=270)
         self.lugar_combo.pack(padx=10, pady=(0, 15))
 
         # Selector de prueba
@@ -136,7 +136,7 @@ class App(ctk.CTk):
         ]
         for txt, fg, hv, key in test_types:
             ctk.CTkButton(left, text=txt, font=("Arial", 13, "bold"),
-                         height=40, width=300, fg_color=fg, hover_color=hv,
+                         height=40, width=270, fg_color=fg, hover_color=hv,
                          command=lambda k=key: self._load_module(k)).pack(pady=3, padx=10)
 
         # Condiciones ambientales
@@ -161,12 +161,12 @@ class App(ctk.CTk):
 
         # Comentarios
         ctk.CTkLabel(left, text="📝 Comentarios", font=("Arial", 14, "bold")).pack(pady=(15, 5), padx=10, anchor="w")
-        self.comments_entry = ctk.CTkTextbox(left, height=80, width=300)
+        self.comments_entry = ctk.CTkTextbox(left, height=80, width=270)
         self.comments_entry.pack(padx=10, pady=(0, 10))
 
         # Botón Previsualizar
         self.btn_preview = ctk.CTkButton(left, text="👁 Previsualizar",
-                                         font=("Arial", 16, "bold"), height=50, width=300,
+                                         font=("Arial", 16, "bold"), height=50, width=270,
                                          fg_color="#107C41", hover_color="#0b5e31",
                                          command=self._run_preview)
         self.btn_preview.pack(pady=15, padx=10)
