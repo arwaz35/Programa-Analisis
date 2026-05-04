@@ -81,12 +81,17 @@ EXCEL_CELLS = {
     "rec_col_rpm": "O",
     "rec_img_resumen": "R75",
 
-    # --- Best Event Aceleración 0-80 ---
-    "best_accel_row": 101,
+    # --- Best Event Aceleración 0-80: Segmentos ---
+    "seg_start_row": 101,
+    "seg_col_name": "B",
+    "seg_col_time": "E",
+    "seg_col_dist": "H",
+    "seg_col_acc": "K",
+    "seg_col_rpm": "N",
     "best_accel_img_vel": "R97",
     "best_accel_img_acel": "R109",
     "best_accel_img_rpm": "R115",
-    "best_accel_img_mapa": "B103",
+    "best_accel_img_mapa": "B107",
 
     # --- Best Event Recuperación 30-80 ---
     "best_rec30_row": 126,
@@ -306,12 +311,30 @@ class AccelerationModule(BaseModule):
 
         # --- CONSTRUIR DATOS DE PREVIEW ---
         contexto_gps = get_gps_context(df)
-        dist_total = contexto_gps.get('distancia_m', 0.0)
+
+        # Calcular distancia de la pista: buscar el evento con el recorrido más largo
+        all_events_for_dist = []
+        if valid_accel:
+            all_events_for_dist.extend(valid_accel)
+        if valid_rec:
+            all_events_for_dist.extend(valid_rec)
+
+        max_dist = 0.0
+        for ev in all_events_for_dist:
+            m = ev.get('metrics')
+            if m and m.get('dist_m', 0) > max_dist:
+                max_dist = m['dist_m']
+
+        # Si no hay eventos con distancia válida, usar la del contexto GPS
+        if max_dist <= 0:
+            max_dist = contexto_gps.get('distancia_m', 0.0)
+
+        dist_total = max_dist
 
         # Mapa contexto
         context_map = None
         if best_accel:
-            context_map_buf = plot_gps_route_simple(best_accel['df'], title="Trazado de la Pista", distance_m=dist_total)
+            context_map_buf = plot_gps_route_simple(best_accel['df'], distance_m=dist_total)
             if context_map_buf:
                 context_map = context_map_buf.getvalue()
 
@@ -333,10 +356,10 @@ class AccelerationModule(BaseModule):
 
         # --- SECCIONES ACELERACIÓN ---
         if best_accel:
-            img_combined = plot_speed_comparison(top_3_accel, "Aceleración 0-80 - Mejores Eventos")
-            img_detail_v = plot_speed_detailed(best_accel, "Velocidad vs Tiempo", benchmarks=ACCEL_BENCHMARKS)
-            img_detail_a = plot_accel_vs_time(best_accel, "Aceleración Promedio vs Tiempo", benchmarks=ACCEL_BENCHMARKS)
-            img_detail_rpm = plot_rpm_vs_time(best_accel, "RPM vs Tiempo", benchmarks=ACCEL_BENCHMARKS) if 'RPM' in best_accel['df'].columns else None
+            img_combined = plot_speed_comparison(top_3_accel, "Acceleration 0-80 - General Result")
+            img_detail_v = plot_speed_detailed(best_accel, "Speed vs Time", benchmarks=ACCEL_BENCHMARKS)
+            img_detail_a = plot_accel_vs_time(best_accel, "Acceleration vs Time", benchmarks=ACCEL_BENCHMARKS)
+            img_detail_rpm = plot_rpm_vs_time(best_accel, "RPM vs Time", benchmarks=ACCEL_BENCHMARKS) if 'RPM' in best_accel['df'].columns else None
             img_detail_gps = plot_gps_heatmap(best_accel, "Ubicación de la prueba")
 
             segments = calculate_segments(best_accel['df'], best_accel['metrics']['start_idx'], ACCEL_BENCHMARKS)
@@ -345,7 +368,7 @@ class AccelerationModule(BaseModule):
             segments.append(["0-80", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
 
             sections.append({
-                "title": "Aceleración 0-80 km/h - Resumen",
+                "title": "Acceleration 0-80 km/h - Summary",
                 "images": [{'bytes': img_combined.getvalue()}],
                 "table_data": None
             })
@@ -359,9 +382,9 @@ class AccelerationModule(BaseModule):
             imgs_detalle.append({'bytes': img_detail_a.getvalue()})
 
             sections.append({
-                "title": f"Aceleración - Mejor Evento ({best_accel['pilot']})",
+                "title": f"Acceleration 0-80 - Best Event ({best_accel['pilot']})",
                 "images": imgs_detalle,
-                "table_data": [["Tramo (km/h)", "Tiempo (s)", "Distancia (m)", "Acel Prom (m/s²)", "Top RPM"]] + segments
+                "table_data": [["Segment (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]] + segments
             })
 
             preview_data["accel_data"] = {
@@ -383,36 +406,36 @@ class AccelerationModule(BaseModule):
                     all_rec_tops.extend(recovery_results[g]['top_3'])
                     best_of_each.append(recovery_results[g]['best'])
 
-            img_combined_rec = plot_speed_comparison(all_rec_tops, "Recuperación - Mejores Eventos")
+            img_combined_rec = plot_speed_comparison(all_rec_tops, "Acceleration 30-80, 40-80, 50-80 - General Result")
 
-            table_r = [["V. Inicial (km/h)", "V. Final (km/h)", "Tiempo (s)", "Distancia (m)", "Acel Prom (m/s²)", "Top RPM"]]
+            table_r = [["V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
             for ev in best_of_each:
                 m = ev['metrics']
                 table_r.append([f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
                                 f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"])
 
             sections.append({
-                "title": "Recuperación - Resumen Global",
+                "title": "Recovery - General Summary",
                 "images": [{'bytes': img_combined_rec.getvalue()}],
                 "table_data": table_r
             })
 
             preview_data["recovery_data"] = {
                 "summary_img": img_combined_rec.getvalue(),
-                "summary_events": best_of_each,
+                "summary_events": all_rec_tops,
                 "bands": {}
             }
 
             for g in [30, 40, 50]:
                 if g in recovery_results:
                     b = recovery_results[g]['best']
-                    img_v = plot_speed_comparison([b], f"Velocidad vs Tiempo ({g}-80)")
-                    img_a = plot_accel_vs_time(b, f"Aceleración vs Tiempo ({g}-80)")
-                    img_rpm = plot_rpm_vs_time(b, f"RPM vs Tiempo ({g}-80)") if 'RPM' in b['df'].columns else None
+                    img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-80)")
+                    img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-80)")
+                    img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-80)") if 'RPM' in b['df'].columns else None
                     img_gps = plot_gps_heatmap(b, "Ubicación de la prueba")
 
                     m = b['metrics']
-                    tab_b = [["V. Inicial", "V. Final", "Tiempo", "Distancia", "Acel Prom", "Top RPM"],
+                    tab_b = [["V. Start", "V. End", "Time", "Distance", "Avg Acc", "Top RPM"],
                              [f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
                               f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"]]
 
@@ -425,7 +448,7 @@ class AccelerationModule(BaseModule):
                     imgs.append({'bytes': img_a.getvalue()})
 
                     sections.append({
-                        "title": f"Recuperación {g}-80 km/h - Mejor Evento",
+                        "title": f"Recovery {g}-80 km/h - Best Event",
                         "images": imgs,
                         "table_data": tab_b
                     })

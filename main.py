@@ -2,7 +2,7 @@
 Programa Análisis de Datos - INCOL
 Punto de entrada principal.
 
-Versión 0.0.8
+Versión 0.0.9
 """
 import sys
 import os

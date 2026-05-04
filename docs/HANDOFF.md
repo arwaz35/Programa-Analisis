@@ -11,7 +11,7 @@
 |---|---|
 | **Proyecto** | Programa Análisis — INCOL |
 | **Ruta** | `Programa Analisis/` |
-| **Versión actual** | 0.0.5 |
+| **Versión actual** | 0.0.9 |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje** | Python 3 |
 | **Framework UI** | CustomTkinter |
@@ -182,3 +182,36 @@ pandas, numpy, matplotlib, customtkinter, staticmap, Pillow, openpyxl
 - `ui/management/motos_view.py` → Función `update_moto()` + botón `btn_upd`
 - `ui/management/lugares_view.py` → Función `update_lugar()` + botón `btn_upd`, refactorización de `select_row` para guardar datos del lugar seleccionado
 - `version.py` → 0.0.5
+
+
+### v0.0.9 — Internacionalización y Mejoras Visuales (2026-05-03)
+
+**Objetivo:** Traducir el sistema al inglés para estandarización técnica y mejorar la precisión visual de las gráficas y reportes Excel.
+
+#### Mejoras de Internacionalización y Visualización
+- **Gráficas en Inglés:** Todos los títulos, etiquetas de ejes (`Speed (km/h)`, `Time (s)`, `Acceleration (m/s²)`) y leyendas se tradujeron al inglés.
+- **Mapas Limpios:** Se eliminaron los títulos internos de los mapas GPS para ganar espacio visual.
+- **Anotaciones Técnicas:** "Promedio Global" se cambió por `Acc Avg`.
+- **Leyendas Inteligentes:** En la gráfica de velocidad detallada, la leyenda se movió a la esquina superior derecha (`upper right`) para evitar que se cruce con la línea de datos.
+
+#### Mejoras en Reporte Excel (ft-nm-000-008.xlsx)
+- **Tabla de Recuperación Extendida:** Ahora muestra los **9 mejores eventos** (los 3 mejores de 30-80, los 3 mejores de 40-80 y los 3 mejores de 50-80).
+- **Nomenclatura de Eventos:** Se simplificó el nombre (`Evento {id} (30-80)` → `Event {id}`).
+- **Nueva Tabla de Segmentos (0-80):** Se reestructuró la sección del mejor evento de aceleración. Ahora las filas 101 a 105 contienen los segmentos (0-20, 20-40, 40-60, 60-80 y 0-80) con columnas:
+  - **B**: Segment Name
+  - **E**: Time
+  - **H**: Distance
+  - **K**: Avg Acc
+  - **N**: Top RPM
+- **Mapa de Calor:** Reubicado de la celda `B103` a la `B107` para dar espacio a la nueva tabla de segmentos.
+
+#### Lógica de Análisis
+- **Distancia de Pista (T35):** Ahora se calcula buscando el evento con el **recorrido más largo** dentro del archivo CSV, en lugar de usar la distancia total del archivo, proporcionando una escala más precisa para el mapa de trazado.
+
+**Archivos modificados:**
+- `plotting/speed_plotter.py`, `accel_plotter.py`, `rpm_plotter.py`, `map_plotter.py`
+- `modules/acceleration.py`
+- `reports/excel_reporter.py`
+- `main.py`, `version.py`
+
+---

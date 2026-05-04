@@ -64,7 +64,7 @@ def plot_rpm_vs_time(event, title, benchmarks=None, figsize_cm=IMG_SIZE_DETAIL_S
         except Exception:
             pass
 
-    ax.set_xlabel("Tiempo (s)")
+    ax.set_xlabel("Time (s)")
     ax.set_ylabel("RPM")
     ax.set_title(title)
     ax.legend()

@@ -173,7 +173,7 @@ class ExcelReporter:
                     row = start_row + i
                     m = ev['metrics']
                     ws[f"{cells.get('accel_col_num', 'B')}{row}"] = i + 1
-                    ws[f"{cells.get('accel_col_evento', 'C')}{row}"] = f"Evento {ev['id']}"
+                    ws[f"{cells.get('accel_col_evento', 'C')}{row}"] = f"Event {ev['id']}"
                     ws[f"{cells.get('accel_col_vi', 'E')}{row}"] = self._fmt(m.get('v_start', 0))
                     ws[f"{cells.get('accel_col_vf', 'G')}{row}"] = self._fmt(m.get('v_final', 0))
                     ws[f"{cells.get('accel_col_tiempo', 'I')}{row}"] = self._fmt(m.get('time_s', 0))
@@ -187,19 +187,17 @@ class ExcelReporter:
                                   cells.get("accel_img_resumen", "R55"),
                                   width_cm=res_size[1], height_cm=res_size[0])
 
-                # Best event tabla
-                best_row = cells.get("best_accel_row", 101)
-                if a_data.get('top_3_events'):
-                    best = a_data['top_3_events'][0]
-                    m = best['metrics']
-                    ws[f"{cells.get('accel_col_num', 'B')}{best_row}"] = 1
-                    ws[f"{cells.get('accel_col_evento', 'C')}{best_row}"] = f"Evento {best['id']}"
-                    ws[f"{cells.get('accel_col_vi', 'E')}{best_row}"] = self._fmt(m.get('v_start', 0))
-                    ws[f"{cells.get('accel_col_vf', 'G')}{best_row}"] = self._fmt(m.get('v_final', 0))
-                    ws[f"{cells.get('accel_col_tiempo', 'I')}{best_row}"] = self._fmt(m.get('time_s', 0))
-                    ws[f"{cells.get('accel_col_dist', 'K')}{best_row}"] = self._fmt(m.get('dist_m', 0))
-                    ws[f"{cells.get('accel_col_acel', 'M')}{best_row}"] = self._fmt(m.get('avg_acc', 0))
-                    ws[f"{cells.get('accel_col_rpm', 'O')}{best_row}"] = self._fmt(m.get('top_rpm', 0), 0)
+                # Best event - Tabla de segmentos (filas 101-105)
+                seg_start = cells.get("seg_start_row", 101)
+                segments = a_data.get('segments', [])
+                for i, seg in enumerate(segments):
+                    row = seg_start + i
+                    # seg = [segment_name, time, distance, acc, rpm]
+                    ws[f"{cells.get('seg_col_name', 'B')}{row}"] = seg[0]
+                    ws[f"{cells.get('seg_col_time', 'E')}{row}"] = self._fmt(seg[1])
+                    ws[f"{cells.get('seg_col_dist', 'H')}{row}"] = self._fmt(seg[2])
+                    ws[f"{cells.get('seg_col_acc', 'K')}{row}"] = self._fmt(seg[3])
+                    ws[f"{cells.get('seg_col_rpm', 'N')}{row}"] = self._fmt(seg[4], 0)
 
                 # Imágenes del mejor evento
                 vel_size = sizes.get("grafica_vel", (7.0, 17.5))
@@ -227,7 +225,7 @@ class ExcelReporter:
                     row = rec_start + i
                     m = ev['metrics']
                     ws[f"{cells.get('rec_col_num', 'B')}{row}"] = i + 1
-                    ws[f"{cells.get('rec_col_evento', 'C')}{row}"] = f"Evento {ev['id']} ({int(m.get('v_start', 0))}-80)"
+                    ws[f"{cells.get('rec_col_evento', 'C')}{row}"] = f"Event {ev['id']}"
                     ws[f"{cells.get('rec_col_vi', 'E')}{row}"] = self._fmt(m.get('v_start', 0))
                     ws[f"{cells.get('rec_col_vf', 'G')}{row}"] = self._fmt(m.get('v_final', 0))
                     ws[f"{cells.get('rec_col_tiempo', 'I')}{row}"] = self._fmt(m.get('time_s', 0))
@@ -266,7 +264,7 @@ class ExcelReporter:
                     rw = cells.get(conf["row_key"], 126)
 
                     ws[f"{cells.get('rec_col_num', 'B')}{rw}"] = 1
-                    ws[f"{cells.get('rec_col_evento', 'C')}{rw}"] = f"Mejor {spd}-80"
+                    ws[f"{cells.get('rec_col_evento', 'C')}{rw}"] = f"Best {spd}-80"
                     ws[f"{cells.get('rec_col_vi', 'E')}{rw}"] = self._fmt(m.get('v_start', 0))
                     ws[f"{cells.get('rec_col_vf', 'G')}{rw}"] = self._fmt(m.get('v_final', 0))
                     ws[f"{cells.get('rec_col_tiempo', 'I')}{rw}"] = self._fmt(m.get('time_s', 0))

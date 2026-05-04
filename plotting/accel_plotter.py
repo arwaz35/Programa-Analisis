@@ -32,13 +32,13 @@ def plot_accel_vs_time(event, title, benchmarks=None, figsize_cm=IMG_SIZE_DETAIL
         return save_to_buffer(fig)
 
     # Aceleración instantánea
-    ax.plot(time_axis, df_reset['Accel_X_ms2'], label='Aceleración (m/s²)', color='blue')
+    ax.plot(time_axis, df_reset['Accel_X_ms2'], label='Acceleration (m/s²)', color='blue')
 
     # Promedio acumulado (solo fase de análisis)
     braking_slice = df_reset.iloc[start_pos:end_pos + 1].copy()
     braking_slice['Cum_Avg'] = braking_slice['Accel_X_ms2'].expanding().mean()
     slice_time = time_axis[start_pos:end_pos + 1]
-    ax.plot(slice_time, braking_slice['Cum_Avg'], label='Promedio Acumulado', color='red', linestyle='--')
+    ax.plot(slice_time, braking_slice['Cum_Avg'], label='Cumulative Avg', color='red', linestyle='--')
 
     # Líneas de referencia
     ax.axvline(x=0, color='#555555', linestyle='--', label='_nolegend_')
@@ -64,12 +64,12 @@ def plot_accel_vs_time(event, title, benchmarks=None, figsize_cm=IMG_SIZE_DETAIL
 
     # Anotación de promedio global
     avg_val = event['metrics']['avg_acc']
-    ax.text(0.05, 0.95, f"Promedio Global: {avg_val:.2f} m/s²", transform=ax.transAxes,
+    ax.text(0.05, 0.95, f"Acc Avg: {avg_val:.2f} m/s²", transform=ax.transAxes,
             verticalalignment='top', fontsize=10,
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
 
-    ax.set_xlabel("Tiempo (s)")
-    ax.set_ylabel("Aceleración (m/s²)")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Acceleration (m/s²)")
     ax.set_title(title)
     ax.legend()
     ax.grid(True)

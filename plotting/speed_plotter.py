@@ -26,14 +26,14 @@ def plot_speed_comparison(events, title, figsize_cm=IMG_SIZE_SUMMARY):
         df_reset = df.reset_index(drop=True)
         time_axis = (df_reset.index - start_pos) * SAMPLE_INTERVAL_S
 
-        label = f"Evento {event.get('id', i+1)} ({event.get('pilot', '')})"
+        label = f"Event {event.get('id', i+1)}"
         ax.plot(time_axis, df_reset['Velocidad_GPS'], label=label)
 
     # Línea de inicio
     ax.axvline(x=0, color='#555555', linestyle='--', label='_nolegend_')
 
-    ax.set_xlabel("Tiempo (s)")
-    ax.set_ylabel("Velocidad (km/h)")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Speed (km/h)")
     ax.set_title(title)
     ax.legend()
     ax.grid(True)
@@ -63,7 +63,7 @@ def plot_speed_detailed(event, title, benchmarks=None, figsize_cm=IMG_SIZE_DETAI
     df_reset = df.reset_index(drop=True)
     time_axis = (df_reset.index - start_pos) * SAMPLE_INTERVAL_S
 
-    ax.plot(time_axis, df_reset['Velocidad_GPS'], label='Velocidad', color='blue')
+    ax.plot(time_axis, df_reset['Velocidad_GPS'], label='Speed', color='blue')
 
     # Líneas de inicio y fin
     ax.axvline(x=0, color='#555555', linestyle='--', label='_nolegend_')
@@ -103,9 +103,10 @@ def plot_speed_detailed(event, title, benchmarks=None, figsize_cm=IMG_SIZE_DETAI
                 ax.text(t + 0.1, y_txt, label_txt, fontsize=9,
                         bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
-    ax.set_xlabel("Tiempo (s)")
-    ax.set_ylabel("Velocidad (km/h)")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Speed (km/h)")
     ax.set_title(title)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.0, 0.95))
     ax.grid(True)
 
     return save_to_buffer(fig)

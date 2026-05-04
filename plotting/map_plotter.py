@@ -85,13 +85,12 @@ def plot_gps_heatmap(event, title="Ubicación de la prueba"):
         fig, (ax_map, ax_cb) = plt.subplots(1, 2, figsize=(10, 6),
                                              gridspec_kw={'width_ratios': [20, 1]})
         ax_map.imshow(image)
-        ax_map.set_title(title)
         ax_map.axis('off')
 
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
         cb = plt.colorbar(sm, cax=ax_cb)
-        cb.set_label('Velocidad (km/h)')
+        cb.set_label('Speed (km/h)')
 
         return save_to_buffer(fig)
 
@@ -144,10 +143,8 @@ def plot_gps_route_simple(df, title=None, distance_m=0):
 
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.imshow(image)
-        if title:
-            ax.set_title(title)
         if distance_m > 0:
-            ax.text(0.02, 0.02, f"Distancia: {distance_m:.1f} m", transform=ax.transAxes,
+            ax.text(0.02, 0.02, f"Distance: {distance_m:.1f} m", transform=ax.transAxes,
                     fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
         ax.axis('off')
 
