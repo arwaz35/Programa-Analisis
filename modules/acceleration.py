@@ -138,6 +138,8 @@ class AccelerationModule(BaseModule):
         self._create_file_row(self.files_frame, 1)
         # Fila 2: Archivo comparativo (opcional)
         self._create_file_row(self.files_frame, 2)
+        # Fila 3: Archivo comparativo 2 (opcional)
+        self._create_file_row(self.files_frame, 3)
 
         self.refresh_combos()
 
@@ -148,15 +150,19 @@ class AccelerationModule(BaseModule):
         ctk.CTkLabel(row, text=f"Archivo {num}:", font=("Arial", 12, "bold")).pack(side="left", padx=5)
 
         # Moto combo
-        moto_combo = ctk.CTkComboBox(row, values=["Seleccione Moto..."], width=200)
+        moto_combo = ctk.CTkComboBox(row, values=["Seleccione Moto..."], width=150)
         moto_combo.pack(side="left", padx=5)
 
         # Piloto combo
-        pilot_combo = ctk.CTkComboBox(row, values=["Seleccione Piloto..."], width=180)
+        pilot_combo = ctk.CTkComboBox(row, values=["Seleccione Piloto..."], width=130)
         pilot_combo.pack(side="left", padx=5)
 
+        # Lugar combo
+        lugar_combo = ctk.CTkComboBox(row, values=["Seleccione Lugar..."], width=130)
+        lugar_combo.pack(side="left", padx=5)
+
         # Ruta del archivo
-        path_entry = ctk.CTkEntry(row, width=250, placeholder_text="Ruta del archivo CSV...")
+        path_entry = ctk.CTkEntry(row, width=150, placeholder_text="Ruta del archivo CSV...")
         path_entry.pack(side="left", padx=5, fill="x", expand=True)
 
         def browse():
@@ -170,6 +176,7 @@ class AccelerationModule(BaseModule):
         # Almacenar referencias
         setattr(self, f'moto_combo_{num}', moto_combo)
         setattr(self, f'pilot_combo_{num}', pilot_combo)
+        setattr(self, f'lugar_combo_{num}', lugar_combo)
         setattr(self, f'path_entry_{num}', path_entry)
 
     def refresh_combos(self):
@@ -184,20 +191,28 @@ class AccelerationModule(BaseModule):
         if not pilot_names:
             pilot_names = ["Sin pilotos"]
 
-        for num in [1, 2]:
+        lugares = self.data_handler.load_lugares()
+        lugar_names = [l.get('Nombre', '') for l in lugares]
+        if not lugar_names:
+            lugar_names = ["Sin lugares registrados"]
+
+        for num in [1, 2, 3]:
             getattr(self, f'moto_combo_{num}').configure(values=moto_names)
             getattr(self, f'pilot_combo_{num}').configure(values=pilot_names)
+            getattr(self, f'lugar_combo_{num}').configure(values=lugar_names)
 
     def get_data(self):
         """Retorna lista de inputs válidos (1 o 2 archivos)."""
         inputs = []
         pilotos_data = self.data_handler.load_pilotos()
         motos_data = self.data_handler.load_motos()
+        lugares_data = self.data_handler.load_lugares()
 
-        for num in [1, 2]:
+        for num in [1, 2, 3]:
             path = getattr(self, f'path_entry_{num}').get()
             pilot = getattr(self, f'pilot_combo_{num}').get()
             moto_str = getattr(self, f'moto_combo_{num}').get()
+            lugar_str = getattr(self, f'lugar_combo_{num}').get()
 
             if not path or not os.path.exists(path):
                 continue
@@ -220,12 +235,22 @@ class AccelerationModule(BaseModule):
                     moto_data = m
                     break
 
+            # Buscar datos del lugar
+            lugar_data = {}
+            for l in lugares_data:
+                if l.get('Nombre', '') == lugar_str:
+                    lugar_data = l
+                    break
+            else:
+                lugar_data = {'Nombre': lugar_str}
+
             inputs.append({
                 'filepath': path,
                 'pilot': pilot,
                 'weight': str(weight),
                 'altura': str(altura),
-                'moto_data': moto_data
+                'moto_data': moto_data,
+                'lugar_data': lugar_data
             })
 
         return inputs

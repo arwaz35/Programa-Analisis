@@ -2,7 +2,7 @@
 Programa Análisis de Datos - INCOL
 Punto de entrada principal.
 
-Versión 0.0.9
+Versión 0.0.10
 """
 import sys
 import os
@@ -116,15 +116,6 @@ class App(ctk.CTk):
         left.pack(side="left", fill="y", padx=10, pady=5)
         left.pack_propagate(False)
 
-        # Lugar
-        ctk.CTkLabel(left, text="📍 Lugar de prueba", font=("Arial", 14, "bold")).pack(pady=(10, 5), padx=10, anchor="w")
-        lugares = self.data_handler.load_lugares()
-        lugar_names = [l.get('Nombre', '') for l in lugares]
-        if not lugar_names:
-            lugar_names = ["Sin lugares registrados"]
-        self.lugar_combo = ctk.CTkComboBox(left, values=lugar_names, width=270)
-        self.lugar_combo.pack(padx=10, pady=(0, 15))
-
         # Selector de prueba
         ctk.CTkLabel(left, text="🔬 Tipo de prueba", font=("Arial", 14, "bold")).pack(pady=(10, 5), padx=10, anchor="w")
 
@@ -202,15 +193,15 @@ class App(ctk.CTk):
             val = entry.get().strip()
             cond[key] = val if val else ''
 
-        # Buscar datos del lugar seleccionado
-        lugar_name = self.lugar_combo.get()
-        lugares = self.data_handler.load_lugares()
-        for l in lugares:
-            if l.get('Nombre', '') == lugar_name:
-                cond['lugar'] = l
-                break
+        # Buscar datos del lugar seleccionado desde el módulo activo
+        if self.current_module:
+            inputs = self.current_module.get_data()
+            if inputs and len(inputs) > 0:
+                cond['lugar'] = inputs[0].get('lugar_data', {})
+            else:
+                cond['lugar'] = {}
         else:
-            cond['lugar'] = {'Nombre': lugar_name}
+            cond['lugar'] = {}
 
         return cond
 
