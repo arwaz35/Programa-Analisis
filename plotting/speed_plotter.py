@@ -26,7 +26,7 @@ def plot_speed_comparison(events, title, figsize_cm=IMG_SIZE_SUMMARY):
         df_reset = df.reset_index(drop=True)
         time_axis = (df_reset.index - start_pos) * SAMPLE_INTERVAL_S
 
-        label = f"Event {event.get('id', i+1)}"
+        label = event.get('display_name', f"Event {event.get('id', i+1)}")
         ax.plot(time_axis, df_reset['Velocidad_GPS'], label=label)
 
     # Línea de inicio

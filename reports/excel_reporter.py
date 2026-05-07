@@ -173,7 +173,7 @@ class ExcelReporter:
                     row = start_row + i
                     m = ev['metrics']
                     ws[f"{cells.get('accel_col_num', 'B')}{row}"] = i + 1
-                    ws[f"{cells.get('accel_col_evento', 'C')}{row}"] = f"Event {ev['id']}"
+                    ws[f"{cells.get('accel_col_evento', 'C')}{row}"] = ev.get('display_name', f"Event {ev['id']}")
                     ws[f"{cells.get('accel_col_vi', 'E')}{row}"] = self._fmt(m.get('v_start', 0))
                     ws[f"{cells.get('accel_col_vf', 'G')}{row}"] = self._fmt(m.get('v_final', 0))
                     ws[f"{cells.get('accel_col_tiempo', 'I')}{row}"] = self._fmt(m.get('time_s', 0))
@@ -204,7 +204,7 @@ class ExcelReporter:
                 small_size = sizes.get("grafica_small", (4.0, 17.5))
 
                 self._insert_image(ws, a_data.get('img_detail_gps'),
-                                  cells.get("best_accel_img_mapa", "B103"),
+                                  cells.get("best_accel_img_mapa", "B107"),
                                   width_cm=map_size[1], height_cm=map_size[0])
                 self._insert_image(ws, a_data.get('img_detail_v'),
                                   cells.get("best_accel_img_vel", "R97"),
@@ -225,7 +225,7 @@ class ExcelReporter:
                     row = rec_start + i
                     m = ev['metrics']
                     ws[f"{cells.get('rec_col_num', 'B')}{row}"] = i + 1
-                    ws[f"{cells.get('rec_col_evento', 'C')}{row}"] = f"Event {ev['id']}"
+                    ws[f"{cells.get('rec_col_evento', 'C')}{row}"] = ev.get('display_name', f"Event {ev['id']}")
                     ws[f"{cells.get('rec_col_vi', 'E')}{row}"] = self._fmt(m.get('v_start', 0))
                     ws[f"{cells.get('rec_col_vf', 'G')}{row}"] = self._fmt(m.get('v_final', 0))
                     ws[f"{cells.get('rec_col_tiempo', 'I')}{row}"] = self._fmt(m.get('time_s', 0))

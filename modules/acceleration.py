@@ -508,7 +508,276 @@ class AccelerationModule(BaseModule):
         return True, "Previsualización abierta"
 
     def _process_comparison(self, inputs, moto_data, env_conditions, comments):
-        """Procesa 2 archivos para comparación."""
-        # Por ahora, procesa solo el primer archivo
-        # TODO: Implementar comparación completa
-        return self._process_single(inputs[0], moto_data, env_conditions, comments)
+        """Procesa 2 o 3 archivos para comparación."""
+        from utils.csv_parser import parse_csv, convert_units
+        from utils.event_detector import extract_acceleration_events, extract_recovery_events, refine_acceleration_start
+        from utils.metrics_calculator import calculate_acceleration_metrics, calculate_recovery_metrics
+        from utils.gps_utils import get_gps_context
+        from plotting.speed_plotter import plot_speed_comparison, plot_speed_detailed
+        from plotting.accel_plotter import plot_accel_vs_time
+        from plotting.rpm_plotter import plot_rpm_vs_time
+        from plotting.map_plotter import plot_gps_heatmap, plot_gps_route_simple
+
+        # 1. Lógica de Nombres
+        motos = [inp.get('moto_data', {}) for inp in inputs]
+        lugares = [inp.get('lugar_data', {}) for inp in inputs]
+        
+        motos_same = all(m == motos[0] for m in motos)
+        lugares_same = all(l == lugares[0] for l in lugares)
+
+        parsed_data = []
+        for i, inp in enumerate(inputs):
+            df = parse_csv(inp['filepath'])
+            if df.empty:
+                continue
+            df = convert_units(df)
+
+            # Extraer Aceleración
+            raw_accel = extract_acceleration_events(df, target_speed=80)
+            valid_accel = []
+            for evt_df in raw_accel:
+                s_idx = refine_acceleration_start(evt_df)
+                m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=80)
+                if m:
+                    v_s = evt_df.loc[s_idx, 'Velocidad_GPS']
+                    if v_s < 5.0:
+                        valid_accel.append({
+                            'df': evt_df, 'metrics': m, 'pilot': inp['pilot'],
+                            'weight': inp['weight'], 'id': len(valid_accel) + 1
+                        })
+            if valid_accel:
+                valid_accel.sort(key=lambda x: x['metrics']['time_s'])
+
+            # Extraer Recuperación
+            raw_rec = extract_recovery_events(df, target_speed=80)
+            valid_rec = []
+            for evt_df in raw_rec:
+                m = calculate_recovery_metrics(evt_df)
+                if m:
+                    valid_rec.append({
+                        'df': evt_df, 'metrics': m,
+                        'group': evt_df.attrs.get('group'),
+                        'pilot': inp['pilot'], 'weight': inp['weight'], 'id': len(valid_rec) + 1
+                    })
+            
+            recovery_results = {}
+            for g in [30, 40, 50]:
+                group_evs = [e for e in valid_rec if e['group'] == g]
+                if group_evs:
+                    group_evs.sort(key=lambda x: x['metrics']['time_s'])
+                    recovery_results[g] = {
+                        'best': group_evs[0],
+                        'top_3': group_evs[:3]
+                    }
+
+            if motos_same:
+                d_name = lugares[i].get('Nombre', f"Event {i+1}")
+            elif lugares_same:
+                m = motos[i]
+                d_name = f"{m.get('Nombre Comercial', '')} {m.get('Codigo', '')}".strip()
+                if not d_name: d_name = f"Event {i+1}"
+            else:
+                d_name = f"Event {i+1}"
+
+            parsed_data.append({
+                'df': df,
+                'valid_accel': valid_accel,
+                'recovery_results': recovery_results,
+                'valid_rec': valid_rec,
+                'pilot': inp['pilot'],
+                'moto_data': motos[i],
+                'lugar_data': lugares[i],
+                'display_name': d_name,
+                'id': i + 1
+            })
+
+        if not parsed_data:
+            return False, "No se encontraron datos válidos en los archivos."
+
+        # 2. Resumen Aceleración (mejor de cada archivo)
+        best_accels_all = []
+        for p in parsed_data:
+            if p['valid_accel']:
+                best_ev = p['valid_accel'][0].copy()
+                best_ev['display_name'] = p['display_name']
+                best_ev['id'] = p['id']
+                best_accels_all.append(best_ev)
+
+        # 3. Resumen Recuperación (mejores de cada banda por archivo)
+        best_recs_all = []
+        for p in parsed_data:
+            for g in [30, 40, 50]:
+                if g in p['recovery_results']:
+                    best_ev = p['recovery_results'][g]['best'].copy()
+                    best_ev['display_name'] = p['display_name']
+                    best_ev['id'] = p['id']
+                    best_recs_all.append(best_ev)
+
+        # 4. Datos del Archivo 1 (como principal)
+        primary = parsed_data[0]
+        contexto_gps = get_gps_context(primary['df'])
+        
+        # Calcular distancia máxima entre todos los eventos de todos los archivos
+        max_dist = 0.0
+        for p in parsed_data:
+            all_evs = p['valid_accel'] + p['valid_rec']
+            for ev in all_evs:
+                m = ev.get('metrics')
+                if m and m.get('dist_m', 0) > max_dist:
+                    max_dist = m['dist_m']
+        
+        if max_dist <= 0:
+            max_dist = contexto_gps.get('distancia_m', 0.0)
+
+        context_map = None
+        if max_dist > 0:
+            context_map_buf = plot_gps_route_simple(primary['df'], distance_m=max_dist)
+            if context_map_buf:
+                context_map = context_map_buf.getvalue()
+
+        # Construir preview_data siguiendo estructura
+        preview_data = {
+            "type": "accel_recovery",
+            "moto_info": primary['moto_data'], # Info general del arch 1
+            "inputs": inputs,
+            "comments": comments,
+            "env_conditions": env_conditions,
+            "contexto_gps": contexto_gps,
+            "context_map": context_map,
+            "accel_data": None,
+            "recovery_data": None,
+            "excel_cells": EXCEL_CELLS,
+            "excel_img_sizes": EXCEL_IMG_SIZES,
+        }
+
+        sections = []
+
+        # -- Secciones Aceleración --
+        if best_accels_all:
+            img_combined = plot_speed_comparison(best_accels_all, "Acceleration 0-80 - General Result")
+            
+            sections.append({
+                "title": "Acceleration 0-80 km/h - Summary",
+                "images": [{'bytes': img_combined.getvalue()}],
+                "table_data": None
+            })
+
+            # Detalle (solo arch 1)
+            if primary['valid_accel']:
+                best_accel_1 = primary['valid_accel'][0]
+                img_detail_v = plot_speed_detailed(best_accel_1, "Speed vs Time", benchmarks=ACCEL_BENCHMARKS)
+                img_detail_a = plot_accel_vs_time(best_accel_1, "Acceleration vs Time", benchmarks=ACCEL_BENCHMARKS)
+                img_detail_rpm = plot_rpm_vs_time(best_accel_1, "RPM vs Time", benchmarks=ACCEL_BENCHMARKS) if 'RPM' in best_accel_1['df'].columns else None
+                img_detail_gps = plot_gps_heatmap(best_accel_1, "Ubicación de la prueba")
+                
+                from utils.metrics_calculator import calculate_segments
+                segments = calculate_segments(best_accel_1['df'], best_accel_1['metrics']['start_idx'], ACCEL_BENCHMARKS)
+                bm = best_accel_1['metrics']
+                segments.append(["0-80", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
+
+                imgs_detalle = []
+                if img_detail_gps: imgs_detalle.append({'bytes': img_detail_gps.getvalue()})
+                imgs_detalle.append({'bytes': img_detail_v.getvalue()})
+                if img_detail_rpm: imgs_detalle.append({'bytes': img_detail_rpm.getvalue()})
+                imgs_detalle.append({'bytes': img_detail_a.getvalue()})
+
+                sections.append({
+                    "title": f"Acceleration 0-80 - Best Event ({primary['pilot']})",
+                    "images": imgs_detalle,
+                    "table_data": [["Segment (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]] + segments
+                })
+
+                preview_data["accel_data"] = {
+                    "top_3_events": best_accels_all,
+                    "segments": segments,
+                    "img_combined": img_combined.getvalue(),
+                    "img_detail_v": img_detail_v.getvalue(),
+                    "img_detail_a": img_detail_a.getvalue(),
+                    "img_detail_rpm": img_detail_rpm.getvalue() if img_detail_rpm else None,
+                    "img_detail_gps": img_detail_gps.getvalue() if img_detail_gps else None,
+                }
+            else:
+                preview_data["accel_data"] = {
+                    "top_3_events": best_accels_all,
+                    "img_combined": img_combined.getvalue(),
+                    "segments": []
+                }
+
+        # -- Secciones Recuperación --
+        if best_recs_all:
+            img_combined_rec = plot_speed_comparison(best_recs_all, "Acceleration 30-80, 40-80, 50-80 - General Result")
+            
+            table_r = [["V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
+            for ev in best_recs_all:
+                m = ev['metrics']
+                # Evitar prefijo duplicado en UI si es string custom
+                table_r.append([f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
+                                f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"])
+
+            sections.append({
+                "title": "Recovery - General Summary",
+                "images": [{'bytes': img_combined_rec.getvalue()}],
+                "table_data": table_r
+            })
+
+            preview_data["recovery_data"] = {
+                "summary_img": img_combined_rec.getvalue(),
+                "summary_events": best_recs_all,
+                "bands": {}
+            }
+
+            # Detalle recuperación (solo arch 1)
+            if primary['recovery_results']:
+                for g in [30, 40, 50]:
+                    if g in primary['recovery_results']:
+                        b = primary['recovery_results'][g]['best']
+                        img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-80)")
+                        img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-80)")
+                        img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-80)") if 'RPM' in primary['df'].columns else None
+                        img_gps = plot_gps_heatmap(b, "Ubicación de la prueba")
+
+                        m = b['metrics']
+                        tab_b = [["V. Start", "V. End", "Time", "Distance", "Avg Acc", "Top RPM"],
+                                 [f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
+                                  f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"]]
+
+                        imgs = []
+                        if img_gps: imgs.append({'bytes': img_gps.getvalue()})
+                        imgs.append({'bytes': img_v.getvalue()})
+                        if img_rpm: imgs.append({'bytes': img_rpm.getvalue()})
+                        imgs.append({'bytes': img_a.getvalue()})
+
+                        sections.append({
+                            "title": f"Recovery {g}-80 km/h - Best Event",
+                            "images": imgs,
+                            "table_data": tab_b
+                        })
+
+                        preview_data["recovery_data"]["bands"][g] = {
+                            "best_event": b,
+                            "img_v": img_v.getvalue(),
+                            "img_a": img_a.getvalue(),
+                            "img_rpm": img_rpm.getvalue() if img_rpm else None,
+                            "img_gps": img_gps.getvalue() if img_gps else None,
+                        }
+
+        from ui.preview_window import PreviewWindow
+
+        def on_excel(p_data):
+            from reports.excel_reporter import ExcelReporter
+            try:
+                r = ExcelReporter()
+                ok, path = r.generate_accel_recovery(p_data)
+                if ok:
+                    messagebox.showinfo("Excel Guardado", f"Generado en:\n{path}")
+                else:
+                    messagebox.showerror("Excel Error", f"Error:\n{path}")
+            except Exception as e:
+                messagebox.showerror("Excel Exception", str(e))
+
+        PreviewWindow(self, "Previsualización Comparativa - Aceleración y Recuperación",
+                      sections, on_excel_callback=on_excel,
+                      contexto_gps=contexto_gps, context_map=context_map,
+                      preview_data=preview_data)
+        
+        return True, "Análisis comparativo procesado correctamente"

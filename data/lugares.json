@@ -3,5 +3,10 @@
         "Nombre": "Incolmotos Yamaha",
         "Altitud (msnm)": "1400",
         "Coordenadas (Lat, Lon)": "6.380650, -75.470272"
+    },
+    {
+        "Nombre": "Doradal",
+        "Altitud (msnm)": "50",
+        "Coordenadas (Lat, Lon)": "12.123456, 12.123456"
     }
 ]
