@@ -10,7 +10,8 @@
         "Cilindraje (cc)": "115",
         "Peso (Kg)": "109",
         "Potencia (Hp)": "8.85",
-        "Torque (Nm)": "9.5"
+        "Torque (Nm)": "9.5",
+        "Velocidad Tope (km/h)": "60"
     },
     {
         "Fecha": "01/05/2026",
@@ -23,6 +24,7 @@
         "Cilindraje (cc)": "115",
         "Peso (Kg)": "100",
         "Potencia (Hp)": "8.85",
-        "Torque (Nm)": "9.2"
+        "Torque (Nm)": "9.2",
+        "Velocidad Tope (km/h)": "60"
     }
 ]

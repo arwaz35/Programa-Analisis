@@ -69,8 +69,8 @@ def show_gestion_motos(app):
     table_frame = ctk.CTkScrollableFrame(left_frame)
     table_frame.pack(fill="both", expand=True)
 
-    headers = ["Nom. Comercial", "Cod. Modelo", "Placa", "Origen", "Cilindraje", "Chasis", "Motor", "Peso", "Pot.", "Torq.", "Foto"]
-    widths = [130, 100, 80, 80, 70, 100, 100, 60, 55, 55, 50]
+    headers = ["Nom. Comercial", "Cod. Modelo", "Placa", "Origen", "Cilindraje", "Chasis", "Motor", "Peso", "Pot.", "Torq.", "Vel. Tope", "Foto"]
+    widths = [100, 85, 65, 60, 55, 80, 80, 50, 45, 45, 60, 40]
 
     header_f = ctk.CTkFrame(table_frame, fg_color="gray30")
     header_f.pack(fill="x", pady=2)
@@ -181,10 +181,16 @@ def show_gestion_motos(app):
             vals = [m.get('Nombre Comercial', ''), m.get('Código Modelo', ''), m.get('Placa', ''),
                     m.get('Origen', ''), m.get('Cilindraje (cc)', ''), m.get('Chasis', ''),
                     m.get('Motor', ''), m.get('Peso (Kg)', ''), m.get('Potencia (Hp)', ''),
-                    m.get('Torque (Nm)', ''), has_foto]
+                    m.get('Torque (Nm)', ''), m.get('Velocidad Tope (km/h)', ''), has_foto]
 
             for j, v in enumerate(vals):
-                lbl = ctk.CTkLabel(row, text=v, width=widths[j])
+                text_val = str(v)
+                # Recortar texto largo dinámicamente según el ancho de la columna (~7px por letra)
+                max_chars = int(widths[j] / 7)
+                if len(text_val) > max_chars:
+                    text_val = text_val[:max_chars-2] + ".."
+                    
+                lbl = ctk.CTkLabel(row, text=text_val, width=widths[j], anchor="w")
                 lbl.pack(side="left", padx=1)
                 lbl.bind("<Button-1>", lambda e, x=i, md=m, r=row: select_row(x, md, r))
 
@@ -198,7 +204,7 @@ def show_gestion_motos(app):
         win.attributes("-topmost", True)
 
         fields = ["Fecha", "Nombre Comercial", "Placa", "Código Modelo", "Origen",
-                  "Chasis", "Motor", "Cilindraje (cc)", "Peso (Kg)", "Potencia (Hp)", "Torque (Nm)"]
+                  "Chasis", "Motor", "Cilindraje (cc)", "Peso (Kg)", "Potencia (Hp)", "Torque (Nm)", "Velocidad Tope (km/h)"]
         entries = {}
         for f in fields:
             r = ctk.CTkFrame(win)
@@ -283,7 +289,7 @@ def show_gestion_motos(app):
         old_idx = selected['val']
 
         fields = ["Fecha", "Nombre Comercial", "Placa", "Código Modelo", "Origen",
-                  "Chasis", "Motor", "Cilindraje (cc)", "Peso (Kg)", "Potencia (Hp)", "Torque (Nm)"]
+                  "Chasis", "Motor", "Cilindraje (cc)", "Peso (Kg)", "Potencia (Hp)", "Torque (Nm)", "Velocidad Tope (km/h)"]
         entries = {}
         for f in fields:
             r = ctk.CTkFrame(win)

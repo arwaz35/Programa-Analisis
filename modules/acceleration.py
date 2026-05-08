@@ -284,12 +284,21 @@ class AccelerationModule(BaseModule):
 
         lugar_name = env_conditions.get('lugar', {}).get('Nombre', 'SinLugar') if env_conditions else 'SinLugar'
 
-        # --- ACELERACIÓN 0-80 ---
-        raw_accel = extract_acceleration_events(df, target_speed=80)
+        try:
+            target_speed = float(moto_data.get('Velocidad Tope (km/h)') or 80)
+        except (ValueError, TypeError):
+            target_speed = 80.0
+
+        accel_benchmarks = [v for v in range(0, int(target_speed) + 1, 20)]
+        if accel_benchmarks[-1] < target_speed:
+            accel_benchmarks.append(int(target_speed))
+
+        # --- ACELERACIÓN 0-TOPE ---
+        raw_accel = extract_acceleration_events(df, target_speed=target_speed)
         valid_accel = []
         for evt_df in raw_accel:
             s_idx = refine_acceleration_start(evt_df)
-            m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=80)
+            m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=target_speed)
             if m:
                 v_s = evt_df.loc[s_idx, 'Velocidad_GPS']
                 if v_s < 5.0:  # Confirmar inicio desde ~0
@@ -306,7 +315,7 @@ class AccelerationModule(BaseModule):
             best_accel, top_3_accel = None, []
 
         # --- RECUPERACIÓN 30, 40, 50 ---
-        raw_rec = extract_recovery_events(df, target_speed=80)
+        raw_rec = extract_recovery_events(df, target_speed=target_speed)
         valid_rec = []
         for evt_df in raw_rec:
             m = calculate_recovery_metrics(evt_df)
@@ -381,19 +390,19 @@ class AccelerationModule(BaseModule):
 
         # --- SECCIONES ACELERACIÓN ---
         if best_accel:
-            img_combined = plot_speed_comparison(top_3_accel, "Acceleration 0-80 - General Result")
-            img_detail_v = plot_speed_detailed(best_accel, "Speed vs Time", benchmarks=ACCEL_BENCHMARKS)
-            img_detail_a = plot_accel_vs_time(best_accel, "Acceleration vs Time", benchmarks=ACCEL_BENCHMARKS)
-            img_detail_rpm = plot_rpm_vs_time(best_accel, "RPM vs Time", benchmarks=ACCEL_BENCHMARKS) if 'RPM' in best_accel['df'].columns else None
+            img_combined = plot_speed_comparison(top_3_accel, f"Acceleration 0-{int(target_speed)} - General Result")
+            img_detail_v = plot_speed_detailed(best_accel, "Speed vs Time", benchmarks=accel_benchmarks)
+            img_detail_a = plot_accel_vs_time(best_accel, "Acceleration vs Time", benchmarks=accel_benchmarks)
+            img_detail_rpm = plot_rpm_vs_time(best_accel, "RPM vs Time", benchmarks=accel_benchmarks) if 'RPM' in best_accel['df'].columns else None
             img_detail_gps = plot_gps_heatmap(best_accel, "Ubicación de la prueba")
 
-            segments = calculate_segments(best_accel['df'], best_accel['metrics']['start_idx'], ACCEL_BENCHMARKS)
-            # Agregar fila total 0-80
+            segments = calculate_segments(best_accel['df'], best_accel['metrics']['start_idx'], accel_benchmarks)
+            # Agregar fila total
             bm = best_accel['metrics']
-            segments.append(["0-80", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
+            segments.append([f"0-{int(target_speed)}", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
 
             sections.append({
-                "title": "Acceleration 0-80 km/h - Summary",
+                "title": f"Acceleration 0-{int(target_speed)} km/h - Summary",
                 "images": [{'bytes': img_combined.getvalue()}],
                 "table_data": None
             })
@@ -407,7 +416,7 @@ class AccelerationModule(BaseModule):
             imgs_detalle.append({'bytes': img_detail_a.getvalue()})
 
             sections.append({
-                "title": f"Acceleration 0-80 - Best Event ({best_accel['pilot']})",
+                "title": f"Acceleration 0-{int(target_speed)} - Best Event ({best_accel['pilot']})",
                 "images": imgs_detalle,
                 "table_data": [["Segment (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]] + segments
             })
@@ -431,7 +440,7 @@ class AccelerationModule(BaseModule):
                     all_rec_tops.extend(recovery_results[g]['top_3'])
                     best_of_each.append(recovery_results[g]['best'])
 
-            img_combined_rec = plot_speed_comparison(all_rec_tops, "Acceleration 30-80, 40-80, 50-80 - General Result")
+            img_combined_rec = plot_speed_comparison(all_rec_tops, f"Acceleration 30-{int(target_speed)}, 40-{int(target_speed)}, 50-{int(target_speed)} - General Result")
 
             table_r = [["V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
             for ev in best_of_each:
@@ -440,7 +449,7 @@ class AccelerationModule(BaseModule):
                                 f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"])
 
             sections.append({
-                "title": "Recovery - General Summary",
+                "title": f"Recovery - General Summary (up to {int(target_speed)} km/h)",
                 "images": [{'bytes': img_combined_rec.getvalue()}],
                 "table_data": table_r
             })
@@ -454,9 +463,9 @@ class AccelerationModule(BaseModule):
             for g in [30, 40, 50]:
                 if g in recovery_results:
                     b = recovery_results[g]['best']
-                    img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-80)")
-                    img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-80)")
-                    img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-80)") if 'RPM' in b['df'].columns else None
+                    img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-{int(target_speed)})")
+                    img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-{int(target_speed)})")
+                    img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-{int(target_speed)})") if 'RPM' in b['df'].columns else None
                     img_gps = plot_gps_heatmap(b, "Ubicación de la prueba")
 
                     m = b['metrics']
@@ -473,7 +482,7 @@ class AccelerationModule(BaseModule):
                     imgs.append({'bytes': img_a.getvalue()})
 
                     sections.append({
-                        "title": f"Recovery {g}-80 km/h - Best Event",
+                        "title": f"Recovery {g}-{int(target_speed)} km/h - Best Event",
                         "images": imgs,
                         "table_data": tab_b
                     })
@@ -525,6 +534,16 @@ class AccelerationModule(BaseModule):
         motos_same = all(m == motos[0] for m in motos)
         lugares_same = all(l == lugares[0] for l in lugares)
 
+        primary = inputs[0]
+        try:
+            target_speed = float(primary.get('moto_data', {}).get('Velocidad Tope (km/h)') or 80)
+        except (ValueError, TypeError):
+            target_speed = 80.0
+
+        accel_benchmarks = [v for v in range(0, int(target_speed) + 1, 20)]
+        if accel_benchmarks[-1] < target_speed:
+            accel_benchmarks.append(int(target_speed))
+
         parsed_data = []
         for i, inp in enumerate(inputs):
             df = parse_csv(inp['filepath'])
@@ -533,11 +552,11 @@ class AccelerationModule(BaseModule):
             df = convert_units(df)
 
             # Extraer Aceleración
-            raw_accel = extract_acceleration_events(df, target_speed=80)
+            raw_accel = extract_acceleration_events(df, target_speed=target_speed)
             valid_accel = []
             for evt_df in raw_accel:
                 s_idx = refine_acceleration_start(evt_df)
-                m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=80)
+                m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=target_speed)
                 if m:
                     v_s = evt_df.loc[s_idx, 'Velocidad_GPS']
                     if v_s < 5.0:
@@ -549,7 +568,7 @@ class AccelerationModule(BaseModule):
                 valid_accel.sort(key=lambda x: x['metrics']['time_s'])
 
             # Extraer Recuperación
-            raw_rec = extract_recovery_events(df, target_speed=80)
+            raw_rec = extract_recovery_events(df, target_speed=target_speed)
             valid_rec = []
             for evt_df in raw_rec:
                 m = calculate_recovery_metrics(evt_df)
@@ -652,12 +671,12 @@ class AccelerationModule(BaseModule):
 
         sections = []
 
-        # -- Secciones Aceleración --
+        # --- Secciones Aceleración ---
         if best_accels_all:
-            img_combined = plot_speed_comparison(best_accels_all, "Acceleration 0-80 - General Result")
+            img_combined = plot_speed_comparison(best_accels_all, f"Acceleration 0-{int(target_speed)} - General Result")
             
             sections.append({
-                "title": "Acceleration 0-80 km/h - Summary",
+                "title": f"Acceleration 0-{int(target_speed)} km/h - Summary",
                 "images": [{'bytes': img_combined.getvalue()}],
                 "table_data": None
             })
@@ -665,15 +684,15 @@ class AccelerationModule(BaseModule):
             # Detalle (solo arch 1)
             if primary['valid_accel']:
                 best_accel_1 = primary['valid_accel'][0]
-                img_detail_v = plot_speed_detailed(best_accel_1, "Speed vs Time", benchmarks=ACCEL_BENCHMARKS)
-                img_detail_a = plot_accel_vs_time(best_accel_1, "Acceleration vs Time", benchmarks=ACCEL_BENCHMARKS)
-                img_detail_rpm = plot_rpm_vs_time(best_accel_1, "RPM vs Time", benchmarks=ACCEL_BENCHMARKS) if 'RPM' in best_accel_1['df'].columns else None
+                img_detail_v = plot_speed_detailed(best_accel_1, "Speed vs Time", benchmarks=accel_benchmarks)
+                img_detail_a = plot_accel_vs_time(best_accel_1, "Acceleration vs Time", benchmarks=accel_benchmarks)
+                img_detail_rpm = plot_rpm_vs_time(best_accel_1, "RPM vs Time", benchmarks=accel_benchmarks) if 'RPM' in best_accel_1['df'].columns else None
                 img_detail_gps = plot_gps_heatmap(best_accel_1, "Ubicación de la prueba")
                 
                 from utils.metrics_calculator import calculate_segments
-                segments = calculate_segments(best_accel_1['df'], best_accel_1['metrics']['start_idx'], ACCEL_BENCHMARKS)
+                segments = calculate_segments(best_accel_1['df'], best_accel_1['metrics']['start_idx'], accel_benchmarks)
                 bm = best_accel_1['metrics']
-                segments.append(["0-80", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
+                segments.append([f"0-{int(target_speed)}", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
 
                 imgs_detalle = []
                 if img_detail_gps: imgs_detalle.append({'bytes': img_detail_gps.getvalue()})
@@ -682,7 +701,7 @@ class AccelerationModule(BaseModule):
                 imgs_detalle.append({'bytes': img_detail_a.getvalue()})
 
                 sections.append({
-                    "title": f"Acceleration 0-80 - Best Event ({primary['pilot']})",
+                    "title": f"Acceleration 0-{int(target_speed)} - Best Event ({primary['pilot']})",
                     "images": imgs_detalle,
                     "table_data": [["Segment (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]] + segments
                 })
@@ -705,7 +724,7 @@ class AccelerationModule(BaseModule):
 
         # -- Secciones Recuperación --
         if best_recs_all:
-            img_combined_rec = plot_speed_comparison(best_recs_all, "Acceleration 30-80, 40-80, 50-80 - General Result")
+            img_combined_rec = plot_speed_comparison(best_recs_all, f"Acceleration 30-{int(target_speed)}, 40-{int(target_speed)}, 50-{int(target_speed)} - General Result")
             
             table_r = [["V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
             for ev in best_recs_all:
@@ -715,7 +734,7 @@ class AccelerationModule(BaseModule):
                                 f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"])
 
             sections.append({
-                "title": "Recovery - General Summary",
+                "title": f"Recovery - General Summary (up to {int(target_speed)} km/h)",
                 "images": [{'bytes': img_combined_rec.getvalue()}],
                 "table_data": table_r
             })
@@ -731,9 +750,9 @@ class AccelerationModule(BaseModule):
                 for g in [30, 40, 50]:
                     if g in primary['recovery_results']:
                         b = primary['recovery_results'][g]['best']
-                        img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-80)")
-                        img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-80)")
-                        img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-80)") if 'RPM' in primary['df'].columns else None
+                        img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-{int(target_speed)})")
+                        img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-{int(target_speed)})")
+                        img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-{int(target_speed)})") if 'RPM' in primary['df'].columns else None
                         img_gps = plot_gps_heatmap(b, "Ubicación de la prueba")
 
                         m = b['metrics']
@@ -748,7 +767,7 @@ class AccelerationModule(BaseModule):
                         imgs.append({'bytes': img_a.getvalue()})
 
                         sections.append({
-                            "title": f"Recovery {g}-80 km/h - Best Event",
+                            "title": f"Recovery {g}-{int(target_speed)} km/h - Best Event",
                             "images": imgs,
                             "table_data": tab_b
                         })
