@@ -98,15 +98,30 @@ def plot_speed_detailed(event, title, benchmarks=None, figsize_cm=IMG_SIZE_DETAI
                 else:
                     cum_a = (v / 3.6) / t if t > 0 else 0
 
-                label_txt = f"{bm}km/h\nt:{t:.2f}s\nd:{cum_d:.2f}m\na:{cum_a:.2f}m/s²"
-                y_txt = 10 + (benchmarks.index(bm) * 15)
-                ax.text(t + 0.1, y_txt, label_txt, fontsize=9,
-                        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+                label_txt = f"{bm}km/h\nt: {t:.2f}s\nd: {cum_d:.2f}m\na: {cum_a:.2f}m/s²"
+
+                # Posicionar etiquetas: siempre a la izquierda de la línea vertical
+                bm_idx = benchmarks.index(bm)
+                n_bm = len(benchmarks)
+                # Primera mitad: arriba de la curva. Última parte: abajo de la curva
+                if bm_idx <= n_bm // 2:
+                    y_offset = 30   # Arriba
+                    va = 'bottom'
+                else:
+                    y_offset = -30  # Abajo
+                    va = 'top'
+
+                ax.annotate(label_txt, xy=(t, v), fontsize=7.5,
+                            xytext=(-15, y_offset), textcoords='offset points',
+                            va=va, ha='right', multialignment='left',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                                      edgecolor='#AAAAAA', alpha=0.92),
+                            arrowprops=dict(arrowstyle='->', color='#888888', lw=0.8,
+                                            connectionstyle='arc3,rad=0.15'))
 
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Speed (km/h)")
     ax.set_title(title)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.0, 0.95))
     ax.grid(True)
 
     return save_to_buffer(fig)
