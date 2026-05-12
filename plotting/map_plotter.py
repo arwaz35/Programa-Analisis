@@ -99,10 +99,11 @@ def plot_gps_heatmap(event, title="Ubicación de la prueba"):
         return None
 
 
-def plot_gps_route_simple(df, title=None, distance_m=0):
+def plot_gps_route_simple(df, title=None, distance_m=0, slope_data=None):
     """
     Genera mapa GPS simple (sin mapa de calor), solo trazado de la ruta.
     Para contexto general de la prueba.
+    slope_data: dict con slope_pct y angle_deg (opcional, para módulo de ascenso).
     """
     try:
         if not _check_internet():
@@ -143,9 +144,20 @@ def plot_gps_route_simple(df, title=None, distance_m=0):
 
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.imshow(image)
+
+        # Texto informativo
+        info_lines = []
         if distance_m > 0:
-            ax.text(0.02, 0.02, f"Distance: {distance_m:.1f} m", transform=ax.transAxes,
-                    fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
+            info_lines.append(f"Distance: {distance_m:.1f} m")
+        if slope_data:
+            info_lines.append(f"Slope: {slope_data['angle_deg']:.1f}° ({slope_data['slope_pct']:.1f}%)")
+
+        if info_lines:
+            info_text = "\n".join(info_lines)
+            ax.text(0.02, 0.02, info_text, transform=ax.transAxes,
+                    fontsize=12, bbox=dict(facecolor='white', alpha=0.8),
+                    verticalalignment='bottom')
+
         ax.axis('off')
 
         return save_to_buffer(fig)

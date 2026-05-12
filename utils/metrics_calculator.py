@@ -1,6 +1,7 @@
 """
 Cálculo de métricas de rendimiento para los eventos extraídos.
 """
+import math
 import pandas as pd
 from config import SAMPLE_INTERVAL_S
 
@@ -155,3 +156,183 @@ def calculate_segments(event_df, start_idx, benchmarks):
         print(f"Error calculando segmentos: {e}")
 
     return segments
+
+
+def calculate_braking_metrics(event_df, start_idx, end_idx):
+    """
+    Calcula métricas para un evento de frenado (from_speed → 0).
+    La desaceleración se reporta como valor negativo.
+    Retorna dict con: time_s, dist_m, avg_acc, v_start, v_final, top_rpm, start_idx, end_idx
+    """
+    try:
+        if start_idx not in event_df.index or end_idx not in event_df.index:
+            return None
+
+        phase = event_df.loc[start_idx:end_idx]
+        time_s = (len(phase) - 1) * SAMPLE_INTERVAL_S
+
+        # Distancia
+        if 'Distancia' in phase.columns:
+            d_start = phase.loc[start_idx, 'Distancia']
+            d_end = phase.loc[end_idx, 'Distancia']
+            dist_m = d_end - d_start
+            if dist_m < 0:
+                dist_m = (phase['Velocidad_GPS'] / 3.6 * SAMPLE_INTERVAL_S).sum()
+        else:
+            dist_m = (phase['Velocidad_GPS'] / 3.6 * SAMPLE_INTERVAL_S).sum()
+
+        # Desaceleración promedio (negativa)
+        if 'Accel_X_ms2' in phase.columns:
+            avg_acc = phase['Accel_X_ms2'].mean()
+        else:
+            v_start_ms = phase.loc[start_idx, 'Velocidad_GPS'] / 3.6
+            v_end_ms = phase.loc[end_idx, 'Velocidad_GPS'] / 3.6
+            avg_acc = (v_end_ms - v_start_ms) / time_s if time_s > 0 else 0
+
+        return {
+            'time_s': time_s,
+            'dist_m': dist_m,
+            'avg_acc': avg_acc,
+            'v_start': phase.loc[start_idx, 'Velocidad_GPS'],
+            'v_final': phase.loc[end_idx, 'Velocidad_GPS'],
+            'top_rpm': phase['RPM'].max() if 'RPM' in phase.columns else 0,
+            'start_idx': start_idx,
+            'end_idx': end_idx
+        }
+    except Exception as e:
+        print(f"Error calculando métricas de frenado: {e}")
+        return None
+
+
+def calculate_climbing_metrics(event_df, start_idx, end_idx):
+    """
+    Calcula métricas para un evento de ascenso.
+    Retorna dict con: time_s, dist_m, avg_acc, v_start, v_final, top_rpm, start_idx, end_idx
+    """
+    try:
+        if start_idx not in event_df.index or end_idx not in event_df.index:
+            return None
+
+        phase = event_df.loc[start_idx:end_idx]
+        time_s = (len(phase) - 1) * SAMPLE_INTERVAL_S
+
+        if 'Distancia' in phase.columns:
+            dist_m = phase.loc[end_idx, 'Distancia'] - phase.loc[start_idx, 'Distancia']
+            if dist_m < 0:
+                dist_m = (phase['Velocidad_GPS'] / 3.6 * SAMPLE_INTERVAL_S).sum()
+        else:
+            dist_m = (phase['Velocidad_GPS'] / 3.6 * SAMPLE_INTERVAL_S).sum()
+
+        if 'Accel_X_ms2' in phase.columns:
+            avg_acc = phase['Accel_X_ms2'].mean()
+        else:
+            v_final_ms = phase.loc[end_idx, 'Velocidad_GPS'] / 3.6
+            v_start_ms = phase.loc[start_idx, 'Velocidad_GPS'] / 3.6
+            avg_acc = (v_final_ms - v_start_ms) / time_s if time_s > 0 else 0
+
+        return {
+            'time_s': time_s,
+            'dist_m': dist_m,
+            'avg_acc': avg_acc,
+            'v_start': phase.loc[start_idx, 'Velocidad_GPS'],
+            'v_final': phase.loc[end_idx, 'Velocidad_GPS'],
+            'top_rpm': phase['RPM'].max() if 'RPM' in phase.columns else 0,
+            'start_idx': start_idx,
+            'end_idx': end_idx
+        }
+    except Exception as e:
+        print(f"Error calculando métricas de ascenso: {e}")
+        return None
+
+
+def calculate_topspeed_metrics(event_df, start_idx, end_idx):
+    """
+    Calcula métricas para un evento de velocidad máxima.
+    Retorna dict con: max_speed, avg_acc, top_rpm, time_s, dist_m, start_idx, end_idx
+    """
+    try:
+        if start_idx not in event_df.index or end_idx not in event_df.index:
+            return None
+
+        phase = event_df.loc[start_idx:end_idx]
+        time_s = (len(phase) - 1) * SAMPLE_INTERVAL_S
+        max_speed = phase['Velocidad_GPS'].max()
+
+        if 'Distancia' in phase.columns:
+            dist_m = phase.loc[end_idx, 'Distancia'] - phase.loc[start_idx, 'Distancia']
+            if dist_m < 0:
+                dist_m = (phase['Velocidad_GPS'] / 3.6 * SAMPLE_INTERVAL_S).sum()
+        else:
+            dist_m = (phase['Velocidad_GPS'] / 3.6 * SAMPLE_INTERVAL_S).sum()
+
+        if 'Accel_X_ms2' in phase.columns:
+            avg_acc = phase['Accel_X_ms2'].mean()
+        else:
+            avg_acc = 0
+
+        return {
+            'max_speed': max_speed,
+            'time_s': time_s,
+            'dist_m': dist_m,
+            'avg_acc': avg_acc,
+            'v_start': phase.loc[start_idx, 'Velocidad_GPS'],
+            'v_final': phase.loc[end_idx, 'Velocidad_GPS'],
+            'top_rpm': phase['RPM'].max() if 'RPM' in phase.columns else 0,
+            'start_idx': start_idx,
+            'end_idx': end_idx
+        }
+    except Exception as e:
+        print(f"Error calculando métricas de velocidad máxima: {e}")
+        return None
+
+
+def calculate_slope(event_df, start_idx, end_idx):
+    """
+    Calcula la pendiente/inclinación del terreno usando datos GPS.
+    Retorna dict con: slope_pct, angle_deg, delta_alt, delta_dist
+    """
+    try:
+        if 'Altitud' not in event_df.columns or 'Distancia' not in event_df.columns:
+            return None
+
+        phase = event_df.loc[start_idx:end_idx]
+
+        alt_start = phase['Altitud'].iloc[0]
+        alt_end = phase['Altitud'].iloc[-1]
+        delta_alt = alt_end - alt_start
+
+        dist_start = phase['Distancia'].iloc[0]
+        dist_end = phase['Distancia'].iloc[-1]
+        delta_dist = dist_end - dist_start
+
+        if delta_dist <= 0:
+            return None
+
+        slope_pct = (delta_alt / delta_dist) * 100
+        angle_deg = math.degrees(math.atan(delta_alt / delta_dist))
+
+        return {
+            'slope_pct': round(slope_pct, 2),
+            'angle_deg': round(angle_deg, 2),
+            'delta_alt': round(delta_alt, 2),
+            'delta_dist': round(delta_dist, 2)
+        }
+    except Exception as e:
+        print(f"Error calculando pendiente: {e}")
+        return None
+
+
+def calculate_speed_difference(gps_speed, dashboard_speed):
+    """
+    Calcula la diferencia porcentual entre la velocidad del tablero y la del GPS.
+    GPS es la velocidad real de referencia.
+    Retorna el porcentaje de diferencia.
+    """
+    try:
+        gps = float(gps_speed)
+        dash = float(dashboard_speed)
+        if gps <= 0:
+            return None
+        return round(((dash - gps) / gps) * 100, 2)
+    except (ValueError, TypeError):
+        return None

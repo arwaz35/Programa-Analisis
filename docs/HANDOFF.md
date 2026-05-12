@@ -11,7 +11,7 @@
 |---|---|
 | **Proyecto** | Programa Análisis — INCOL |
 | **Ruta** | `Programa Analisis/` |
-| **Versión actual** | 0.0.9 |
+| **Versión actual** | 1.0.0 |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje** | Python 3 |
 | **Framework UI** | CustomTkinter |
@@ -19,6 +19,44 @@
 ---
 
 ## Registro de Cambios
+ 
+### v1.0.0 — Módulos Finales y Estandarización (2026-05-12)
+ 
+**Objetivo:** Finalización de los 3 módulos core faltantes (Frenado, Ascenso, Velocidad Máxima) y estandarización de reportes Excel con unidades físicas.
+ 
+#### 1. Nuevos Módulos de Análisis
+Se han implementado y estabilizado los siguientes módulos:
+*   **Módulo de Frenado (`braking.py`)**:
+    *   Análisis de frenado 40→0 y 60→0 km/h.
+    *   Detección inteligente de inicio de frenada (ventana de 1.5s para filtrar fluctuaciones).
+    *   Soporte para comparación de hasta 3 archivos.
+*   **Módulo de Ascenso (`climbing.py`)**:
+    *   Análisis de desempeño en pendiente (~12°).
+    *   Interfaz especial: Lugar general + Fila 1 (Solo Piloto) + Fila 2 (Con Pasajero).
+    *   Cálculo automático de pendiente (%, °) basado en altitud GPS.
+*   **Módulo de Velocidad Máxima (`top_speed.py`)**:
+    *   Mantenimiento de velocidad en tramos de 200m.
+    *   Comparativa de Velocidad GPS vs. Velocidad de Tablero.
+    *   Cálculo de diferencia porcentual de error del velocímetro.
+ 
+#### 2. Mejoras en Core y Utilidades
+*   **Detección de Eventos (`event_detector.py`)**:
+    *   `refine_braking_start`: Implementación de lógica de validación (13/15 muestras decrecientes) para asegurar que la métrica de tiempo/distancia de frenado sea exacta.
+*   **Calculadora de Métricas (`metrics_calculator.py`)**:
+    *   Nuevas funciones para cálculo de pendiente, desaceleración negativa y diferencias de velocidad.
+*   **Visualización de Mapas (`map_plotter.py`)**:
+    *   Soporte para superposición de datos de pendiente (`slope_data`) en los mapas de contexto.
+ 
+#### 3. Estandarización de Reportes Excel
+*   **Unidades Físicas**: Se ha implementado la adición automática de unidades en todos los formatos:
+    *   Peso: `XX kg`
+    *   Altura: `XXX cm`
+*   **Nuevas Plantillas**: Integración total con los formatos:
+    *   `ft-nm-000-005.xlsx` (Frenado)
+    *   `ft-nm-000-012.xlsx` (Ascenso)
+    *   `ft-nm-000-007.xlsx` (Velocidad Máxima)
+ 
+---
 
 ### v0.0.1 — Creación inicial (2026-05-01)
 
