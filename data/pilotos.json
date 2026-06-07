@@ -8,5 +8,20 @@
         "nombre": "Daniel Velasquez",
         "peso": 75.0,
         "altura": 180.0
+    },
+    {
+        "nombre": "Andres Parra",
+        "peso": 91.0,
+        "altura": 175.0
+    },
+    {
+        "nombre": "Fredy Valencia",
+        "peso": 63.0,
+        "altura": 165.0
+    },
+    {
+        "nombre": "Laura Barrientos",
+        "peso": 70.0,
+        "altura": 175.0
     }
 ]

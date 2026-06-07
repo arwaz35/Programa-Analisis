@@ -276,10 +276,12 @@ class BrakingModule(BaseModule):
 
                 m = calculate_braking_metrics(evt_df, s_idx, e_idx)
                 if m:
-                    valid_events.append({
-                        'df': evt_df, 'metrics': m, 'pilot': pilot,
-                        'weight': weight, 'id': len(valid_events) + 1
-                    })
+                    # Validar que la velocidad inicial real esté dentro del rango objetivo +- 5 km/h
+                    if (from_speed - 5) <= m['v_start'] <= (from_speed + 5):
+                        valid_events.append({
+                            'df': evt_df, 'metrics': m, 'pilot': pilot,
+                            'weight': weight, 'id': len(valid_events) + 1
+                        })
 
             if valid_events:
                 # Ordenar por menor distancia de frenado (mejor = menos distancia)
@@ -429,10 +431,12 @@ class BrakingModule(BaseModule):
                     e_idx = stopped.index[0]
                     m = calculate_braking_metrics(evt_df, s_idx, e_idx)
                     if m:
-                        valid_events.append({
-                            'df': evt_df, 'metrics': m, 'pilot': inp['pilot'],
-                            'weight': inp['weight'], 'id': len(valid_events) + 1
-                        })
+                        # Validar que la velocidad inicial real esté dentro del rango objetivo +- 5 km/h
+                        if (from_speed - 5) <= m['v_start'] <= (from_speed + 5):
+                            valid_events.append({
+                                'df': evt_df, 'metrics': m, 'pilot': inp['pilot'],
+                                'weight': inp['weight'], 'id': len(valid_events) + 1
+                            })
                 if valid_events:
                     valid_events.sort(key=lambda x: x['metrics']['dist_m'])
                     braking_results[from_speed] = {
