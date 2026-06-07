@@ -147,15 +147,20 @@ def extract_recovery_events(df, target_speed=80):
 def refine_braking_start(event_df, from_speed):
     """
     Identifica el punto exacto donde la frenada real comienza.
-    Utiliza el método físico propuesto por Daniel: localiza el instante de máxima
-    desaceleración (mínimo de Accel_X) y retrocede hasta el punto de mayor
-    velocidad GPS en ese intervalo previo.
-    Si no hay acelerómetro, realiza la misma lógica estimando la desaceleración
-    por el cambio numérico de velocidad GPS.
+    Utiliza el método físico: localiza el primer punto de desaceleración activa
+    (<= -0.3 G o decel GPS >= 1.0 m/s2) y toma la muestra inmediatamente anterior
+    como el inicio (t=0), logrando un declive inmediato en la gráfica.
     """
     try:
         speed = event_df['Velocidad_GPS'].values
         n_samples = len(speed)
+        
+        # Obtener el índice local del trigger (normalmente 20 muestras desde el inicio del buffer)
+        trigger_local_idx = event_df.index.get_loc(event_df.attrs.get('start_idx', event_df.index[0])) if hasattr(event_df, 'attrs') and 'start_idx' in event_df.attrs else -1
+        if trigger_local_idx == -1:
+            trigger_local_idx = min(20, n_samples - 1)
+            
+        frenada_iniciada_idx = -1
         
         # 1. INTENTO CON ACELERÓMETRO LONGITUDINAL (Accel_X o Accel_X_ms2)
         accel_col = None
@@ -165,46 +170,52 @@ def refine_braking_start(event_df, from_speed):
             accel_col = 'Accel_X'
             
         if accel_col:
+            from config import G_TO_MS2
             accel_series = event_df[accel_col].values
-            
-            # Suavizar señal del acelerómetro para evitar picos de ruido aislados (vibración del motor)
+            if accel_col == 'Accel_X':
+                accel_series = accel_series * G_TO_MS2
+                
             accel_smooth = pd.Series(accel_series).rolling(window=5, min_periods=1, center=True).mean().values
             
-            # Encontrar la desaceleración máxima (mínimo absoluto en la serie del acelerómetro)
-            min_accel_idx = np.argmin(accel_smooth)
-            
-            # Buscar el punto de velocidad GPS máxima desde el inicio del evento
-            # hasta el punto de desaceleración máxima
-            if min_accel_idx > 0:
-                sub_speed = speed[:min_accel_idx + 1]
-                max_speed_local_idx = np.argmax(sub_speed)
-                return event_df.index[max_speed_local_idx]
+            # Buscaremos el primer punto a partir del trigger (con margen de 5 muestras antes)
+            # donde la desaceleración cruce por debajo de -0.3 G (-2.94 m/s2)
+            start_search = max(0, trigger_local_idx - 5)
+            for i in range(start_search, n_samples):
+                if accel_smooth[i] <= -0.3 * G_TO_MS2 and speed[i] >= from_speed * 0.7:
+                    frenada_iniciada_idx = i
+                    break
+                    
+            if frenada_iniciada_idx != -1:
+                # Retornar la muestra anterior para que la gráfica comience en el pico antes de caer
+                return event_df.index[max(0, frenada_iniciada_idx - 1)]
                 
         # 2. FALLBACK SI NO HAY ACELERÓMETRO (ESTIMACIÓN POR GPS)
-        # Calculamos la desaceleración numérica (derivada de la velocidad GPS suavizada)
         speed_smooth = pd.Series(speed).rolling(window=5, min_periods=1, center=True).mean().values
         calculated_decel = np.zeros(n_samples)
         window = 5
         for i in range(n_samples - window):
-            v1_ms = speed_smooth[i] / 3.6
-            v2_ms = speed_smooth[i + window] / 3.6
+            v1 = speed_smooth[i] / 3.6
+            v2 = speed_smooth[i + window] / 3.6
             dt = window * 0.1  # 10Hz
-            calculated_decel[i] = (v1_ms - v2_ms) / dt
+            calculated_decel[i] = (v1 - v2) / dt
             
-        max_decel_idx = np.argmax(calculated_decel)
-        if max_decel_idx > 0:
-            sub_speed = speed[:max_decel_idx + 1]
-            max_speed_local_idx = np.argmax(sub_speed)
-            return event_df.index[max_speed_local_idx]
+        start_search = max(0, trigger_local_idx - 5)
+        for i in range(start_search, n_samples):
+            if calculated_decel[i] >= 1.0 and speed[i] >= from_speed * 0.7:
+                frenada_iniciada_idx = i
+                break
+                
+        if frenada_iniciada_idx != -1:
+            return event_df.index[max(0, frenada_iniciada_idx - 1)]
             
         # Fallback de último recurso
         near_target = event_df[event_df['Velocidad_GPS'] >= from_speed * 0.9]
         if not near_target.empty:
             return near_target.index[0]
             
-        return event_df.index[0]
+        return event_df.index[trigger_local_idx]
     except Exception as e:
-        print(f"Error refinando inicio de frenada (método de desaceleración): {e}")
+        print(f"Error refinando inicio de frenada v3: {e}")
         return event_df.index[0]
 
 
