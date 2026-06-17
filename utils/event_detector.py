@@ -72,6 +72,22 @@ def extract_acceleration_events(df, target_speed=80):
         search_end = min(len(df), start_idx + 600)  # Max 60s
 
         post_trigger = df.iloc[start_idx:search_end]
+
+        # Truncar la búsqueda si la moto se detiene después de haber iniciado movimiento
+        # para no unir intentos abortados con intentos exitosos subsiguientes.
+        moving = False
+        stopped_idx = None
+        for idx, row in post_trigger.iterrows():
+            v = row['Velocidad_GPS']
+            if v > 5.0:
+                moving = True
+            if moving and v < 2.0:
+                stopped_idx = idx
+                break
+
+        if stopped_idx is not None:
+            post_trigger = post_trigger.loc[:stopped_idx]
+
         achieved = post_trigger[post_trigger['Velocidad_GPS'] >= target_speed]
 
         if achieved.empty:
@@ -121,6 +137,17 @@ def extract_recovery_events(df, target_speed=80):
         # Buscar target_speed
         search_end = min(len(df), start_idx + 600)
         post_trigger = df.iloc[start_idx:search_end]
+
+        # Truncar la búsqueda si la velocidad cae por debajo de 10 km/h (intento abortado/parada)
+        stopped_idx = None
+        for idx, row in post_trigger.iterrows():
+            if row['Velocidad_GPS'] < 10.0:
+                stopped_idx = idx
+                break
+
+        if stopped_idx is not None:
+            post_trigger = post_trigger.loc[:stopped_idx]
+
         achieved = post_trigger[post_trigger['Velocidad_GPS'] >= target_speed]
 
         if achieved.empty:

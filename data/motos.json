@@ -1,6 +1,20 @@
 [
     {
-        "Fecha": "01/06/2026",
+        "Fecha": "16/06/2026",
+        "Nombre Comercial": "XTZ250",
+        "Placa": "CIW19H",
+        "Código Modelo": "B9L3",
+        "Origen": "INCOL",
+        "Chasis": "9FKDG2849R2036080",
+        "Motor": "G3F2E03680",
+        "Cilindraje (cc)": "249",
+        "Peso (Kg)": "151",
+        "Potencia (Hp)": "20.4",
+        "Torque (Nm)": "20.5",
+        "Velocidad Tope (km/h)": "80"
+    },
+    {
+        "Fecha": "16/06/2026",
         "Nombre Comercial": "XTZ250 Lander",
         "Placa": "TRL01A",
         "Código Modelo": "B3G8",
@@ -14,17 +28,31 @@
         "Velocidad Tope (km/h)": "80"
     },
     {
-        "Fecha": "01/06=2026",
-        "Nombre Comercial": "XTZ250",
-        "Placa": "CIW19H",
-        "Código Modelo": "B9L3",
+        "Fecha": "16/06/2026",
+        "Nombre Comercial": "Crypton FINN",
+        "Placa": "SNA38H",
+        "Código Modelo": "D241",
         "Origen": "INCOL",
-        "Chasis": "9FKDG2849R2036080",
-        "Motor": "G3F2E03680",
-        "Cilindraje (cc)": "249",
-        "Peso (Kg)": "151",
-        "Potencia (Hp)": "20.4",
-        "Torque (Nm)": "20.5",
-        "Velocidad Tope (km/h)": "80"
+        "Chasis": "9FKUE4411T2000131",
+        "Motor": "E34VE000131",
+        "Cilindraje (cc)": "114",
+        "Peso (Kg)": "100",
+        "Potencia (Hp)": "8.85",
+        "Torque (Nm)": "9.2",
+        "Velocidad Tope (km/h)": "60"
+    },
+    {
+        "Fecha": "16/06/2026",
+        "Nombre Comercial": "PG-1",
+        "Placa": "TRL02A",
+        "Código Modelo": "DG11",
+        "Origen": "YMVN",
+        "Chasis": "9C6DG3340S0041525",
+        "Motor": "E35SE003404",
+        "Cilindraje (cc)": "114",
+        "Peso (Kg)": "109",
+        "Potencia (Hp)": "8.85",
+        "Torque (Nm)": "9.5",
+        "Velocidad Tope (km/h)": "60"
     }
 ]
