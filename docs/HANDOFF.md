@@ -27,8 +27,14 @@
 * **Detector de Parada en Aceleración (`event_detector.py`)**:
   * En `extract_acceleration_events`, se introdujo un algoritmo de histéresis: si la velocidad supera **$5.0$ km/h** (inicio de movimiento) y posteriormente vuelve a caer por debajo de **$2.0$ km/h** (moto detenida), se considera que el intento de aceleración se abortó.
   * La ventana de búsqueda del trigger se trunca en la detención, evitando enlazar un trigger abortado con un intento exitoso posterior. Esto elimina desfases y jorobas de tiempo (por ejemplo, previas de hasta 22 segundos en el eje X) en gráficas de motos limitadas a 60 km/h.
-* **Detector de Parada en Recuperación (`event_detector.py`)**:
-  * En `extract_recovery_events`, si la velocidad disminuye por debajo de **$10.0$ km/h** antes de alcanzar la velocidad objetivo, se asume que la prueba de recuperación fue abortada y se trunca la búsqueda.
+*   **Detector de Parada en Recuperación (`event_detector.py`)**:
+    *   En `extract_recovery_events`, si la velocidad disminuye por debajo de **$10.0$ km/h** antes de alcanzar la velocidad objetivo, se asume que la prueba de recuperación fue abortada y se trunca la búsqueda.
+*   **Actualización de Plantillas Excel (`excel_reporter.py`)**:
+    *   Se actualizaron los nombres de archivo hardcoded de las plantillas en `excel_reporter.py` para coincidir con las nuevas versiones almacenadas en la carpeta `Formatos/`:
+        *   Aceleración: `ft-nm-000-008.xlsx` → `FT-NM-000-008V1.xlsx`
+        *   Frenado: `ft-nm-000-005.xlsx` → `FT-NM-000-005V3.xlsx`
+        *   Ascenso: `ft-nm-000-012.xlsx` → `FT-NM-000-012V4.xlsx`
+        *   Velocidad Máxima: `ft-nm-000-007.xlsx` → `FT-NM-000-007V4.xlsx`
 
 ---
 

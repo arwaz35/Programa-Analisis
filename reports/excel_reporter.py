@@ -113,7 +113,7 @@ class ExcelReporter:
         usando el formato ft-nm-000-008.xlsx.
         """
         try:
-            template_path = os.path.join(self.templates_dir, "ft-nm-000-008.xlsx")
+            template_path = os.path.join(self.templates_dir, "FT-NM-000-008V1.xlsx")
             if not os.path.exists(template_path):
                 return False, f"Plantilla no encontrada: {template_path}"
 
@@ -376,7 +376,7 @@ class ExcelReporter:
     def generate_braking(self, preview_data):
         """Genera reporte Excel de frenado usando ft-nm-000-005.xlsx."""
         try:
-            template_path = os.path.join(self.templates_dir, "ft-nm-000-005.xlsx")
+            template_path = os.path.join(self.templates_dir, "FT-NM-000-005V3.xlsx")
             if not os.path.exists(template_path):
                 return False, f"Plantilla no encontrada: {template_path}"
 
@@ -490,7 +490,7 @@ class ExcelReporter:
     def generate_climbing(self, preview_data):
         """Genera reporte Excel de ascenso usando ft-nm-000-012.xlsx."""
         try:
-            template_path = os.path.join(self.templates_dir, "ft-nm-000-012.xlsx")
+            template_path = os.path.join(self.templates_dir, "FT-NM-000-012V4.xlsx")
             if not os.path.exists(template_path):
                 return False, f"Plantilla no encontrada: {template_path}"
 
@@ -609,7 +609,7 @@ class ExcelReporter:
     def generate_topspeed(self, preview_data):
         """Genera reporte Excel de velocidad máxima usando ft-nm-000-007.xlsx."""
         try:
-            template_path = os.path.join(self.templates_dir, "ft-nm-000-007.xlsx")
+            template_path = os.path.join(self.templates_dir, "FT-NM-000-007V4.xlsx")
             if not os.path.exists(template_path):
                 return False, f"Plantilla no encontrada: {template_path}"
 
