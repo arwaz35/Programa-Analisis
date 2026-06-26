@@ -8,5 +8,20 @@
         "Nombre": "Doradal",
         "Altitud (msnm)": "50",
         "Coordenadas (Lat, Lon)": "12.123456, 12.123456"
+    },
+    {
+        "Nombre": "Zipaquirá",
+        "Altitud (msnm)": "2600",
+        "Coordenadas (Lat, Lon)": "4.953103, -73.942090"
+    },
+    {
+        "Nombre": "Montería",
+        "Altitud (msnm)": "30",
+        "Coordenadas (Lat, Lon)": "8.784441, -75.896380"
+    },
+    {
+        "Nombre": "Ascenso",
+        "Altitud (msnm)": "1440",
+        "Coordenadas (Lat, Lon)": "6.387527, -75.462427"
     }
 ]

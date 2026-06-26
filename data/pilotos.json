@@ -23,5 +23,10 @@
         "nombre": "Laura Barrientos",
         "peso": 70.0,
         "altura": 175.0
+    },
+    {
+        "nombre": "Jorge Ceballos",
+        "peso": 87.0,
+        "altura": 180.0
     }
 ]
