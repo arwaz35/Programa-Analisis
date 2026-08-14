@@ -34,19 +34,44 @@ def detect_trigger_groups(df):
 
 def refine_acceleration_start(event_df):
     """
-    Identifica el punto exacto donde la velocidad comienza a crecer desde ~0.
+    Identifica el punto exacto donde la velocidad comienza a crecer desde ~0
+    en torno al momento del pulsador (trigger).
     Retorna el índice del inicio refinado.
     """
     try:
-        starts = event_df.index[event_df['Velocidad_GPS'] < 1.0].tolist()
-        if starts:
-            return starts[-1]
+        trigger_idx = event_df.attrs.get('start_idx', event_df.index[0]) if hasattr(event_df, 'attrs') else event_df.index[0]
+        if trigger_idx not in event_df.index:
+            t_loc = min(20, len(event_df) - 1)
+            trigger_idx = event_df.index[t_loc]
+        else:
+            t_loc = event_df.index.get_loc(trigger_idx)
 
-        low_speed = event_df[event_df['Velocidad_GPS'] < 2.0]
-        if not low_speed.empty:
-            return low_speed.index[-1]
+        speed = event_df['Velocidad_GPS'].values
+        n = len(speed)
 
-        return event_df.index[0]
+        # Si en el trigger la moto ya tenía cierta velocidad (>= 1.0 km/h),
+        # buscar hacia atrás en el buffer previo el punto de inicio en reposo
+        if speed[t_loc] >= 1.0:
+            look_back_start = max(0, t_loc - 30)
+            for i in range(t_loc, look_back_start - 1, -1):
+                if speed[i] < 1.0:
+                    return event_df.index[i]
+            for i in range(t_loc, look_back_start - 1, -1):
+                if speed[i] < 2.0:
+                    return event_df.index[i]
+            return event_df.index[look_back_start]
+
+        # Si en el trigger la moto estaba detenida (< 1.0 km/h),
+        # buscar hacia adelante el despegue de velocidad (>= 2.0 km/h)
+        # y retornar la última muestra con velocidad < 1.0 km/h antes del despegue
+        last_low_idx = t_loc
+        for i in range(t_loc, n):
+            if speed[i] < 1.0:
+                last_low_idx = i
+            elif speed[i] >= 2.0:
+                return event_df.index[last_low_idx]
+
+        return event_df.index[last_low_idx]
     except Exception as e:
         print(f"Error refinando inicio de aceleración: {e}")
         return event_df.index[0]
@@ -68,8 +93,10 @@ def extract_acceleration_events(df, target_speed=80):
 
     triggers = detect_trigger_groups(df)
 
-    for start_idx in triggers:
+    for i, start_idx in enumerate(triggers):
         search_end = min(len(df), start_idx + 600)  # Max 60s
+        if i + 1 < len(triggers):
+            search_end = min(search_end, triggers[i + 1])
 
         post_trigger = df.iloc[start_idx:search_end]
 
@@ -95,14 +122,17 @@ def extract_acceleration_events(df, target_speed=80):
 
         target_idx = achieved.index[0]
         target_loc = df.index.get_loc(target_idx)
+        start_loc = df.index.get_loc(start_idx)
 
         # Buffer: 2s antes del trigger, 1s después del target
-        slice_start = max(0, start_idx - 20)
+        slice_start = max(0, start_loc - 20)
         slice_end = min(len(df), target_loc + 11)
 
         event_df = df.iloc[slice_start:slice_end].copy()
 
         if not event_df.empty:
+            event_df.attrs['start_idx'] = start_idx
+            event_df.attrs['end_idx'] = target_idx
             events.append(event_df)
 
     return events
@@ -121,7 +151,7 @@ def extract_recovery_events(df, target_speed=80):
 
     triggers = detect_trigger_groups(df)
 
-    for start_idx in triggers:
+    for i, start_idx in enumerate(triggers):
         v_start = df.loc[start_idx, 'Velocidad_GPS']
 
         # Determinar grupo de velocidad
@@ -136,6 +166,9 @@ def extract_recovery_events(df, target_speed=80):
 
         # Buscar target_speed
         search_end = min(len(df), start_idx + 600)
+        if i + 1 < len(triggers):
+            search_end = min(search_end, triggers[i + 1])
+
         post_trigger = df.iloc[start_idx:search_end]
 
         # Truncar la búsqueda si la velocidad cae por debajo de 10 km/h (intento abortado/parada)
@@ -155,9 +188,10 @@ def extract_recovery_events(df, target_speed=80):
 
         target_idx = achieved.index[0]
         target_loc = df.index.get_loc(target_idx)
+        start_loc = df.index.get_loc(start_idx)
 
         # Buffer
-        slice_start = max(0, start_idx - 10)
+        slice_start = max(0, start_loc - 10)
         slice_end = min(len(df), target_loc + 11)
 
         event_df = df.iloc[slice_start:slice_end].copy()
@@ -262,7 +296,7 @@ def extract_braking_events(df, from_speed=60):
 
     triggers = detect_trigger_groups(df)
 
-    for start_idx in triggers:
+    for i, start_idx in enumerate(triggers):
         v_at_trigger = df.loc[start_idx, 'Velocidad_GPS']
 
         # Verificar que la velocidad al momento del trigger está cerca del objetivo (rango +-10 km/h)
@@ -271,6 +305,9 @@ def extract_braking_events(df, from_speed=60):
 
         # Buscar el punto donde la velocidad baja a < 1 km/h
         search_end = min(len(df), start_idx + 600)  # Max 60s
+        if i + 1 < len(triggers):
+            search_end = min(search_end, triggers[i + 1])
+
         post_trigger = df.iloc[start_idx:search_end]
         stopped = post_trigger[post_trigger['Velocidad_GPS'] < 1.0]
 
@@ -279,14 +316,17 @@ def extract_braking_events(df, from_speed=60):
 
         end_idx = stopped.index[0]
         end_loc = df.index.get_loc(end_idx)
+        start_loc = df.index.get_loc(start_idx)
 
         # Buffer: 2s antes del trigger, 1s después del final
-        slice_start = max(0, start_idx - 20)
+        slice_start = max(0, start_loc - 20)
         slice_end = min(len(df), end_loc + 11)
 
         event_df = df.iloc[slice_start:slice_end].copy()
 
         if not event_df.empty:
+            event_df.attrs['start_idx'] = start_idx
+            event_df.attrs['end_idx'] = end_idx
             events.append(event_df)
 
     return events
@@ -298,7 +338,7 @@ def extract_climbing_events(df, target_distance=70):
     Criterios:
       1. Pulsador == 100
       2. Velocidad inicial ~ 0
-      3. Recorre al menos target_distance metros
+      3. Recorre al menos target_distance metros de forma continua
     Retorna lista de DataFrames.
     """
     events = []
@@ -310,16 +350,34 @@ def extract_climbing_events(df, target_distance=70):
 
     triggers = detect_trigger_groups(df)
 
-    for start_idx in triggers:
+    for i, start_idx in enumerate(triggers):
         v_start = df.loc[start_idx, 'Velocidad_GPS']
         if v_start > 5.0:  # Debe iniciar desde ~0
             continue
 
         d_start = df.loc[start_idx, 'Distancia']
 
-        # Buscar dónde se alcanzan target_distance metros
+        # Buscar dónde se alcanzan target_distance metros (sin exceder el siguiente trigger)
         search_end = min(len(df), start_idx + 600)  # Max 60s
+        if i + 1 < len(triggers):
+            search_end = min(search_end, triggers[i + 1])
+
         post_trigger = df.iloc[start_idx:search_end]
+
+        # Truncar la búsqueda si la moto se detiene después de haber iniciado movimiento
+        # para no unir intentos abortados con intentos exitosos subsiguientes.
+        moving = False
+        stopped_idx = None
+        for idx, row in post_trigger.iterrows():
+            v = row['Velocidad_GPS']
+            if v > 5.0:
+                moving = True
+            if moving and v < 2.0:
+                stopped_idx = idx
+                break
+
+        if stopped_idx is not None:
+            post_trigger = post_trigger.loc[:stopped_idx]
 
         reached = post_trigger[(post_trigger['Distancia'] - d_start) >= target_distance]
 
@@ -328,9 +386,10 @@ def extract_climbing_events(df, target_distance=70):
 
         end_idx = reached.index[0]
         end_loc = df.index.get_loc(end_idx)
+        start_loc = df.index.get_loc(start_idx)
 
-        # Buffer
-        slice_start = max(0, start_idx - 20)
+        # Buffer: 2s antes del trigger, 1s después del final
+        slice_start = max(0, start_loc - 20)
         slice_end = min(len(df), end_loc + 11)
 
         event_df = df.iloc[slice_start:slice_end].copy()
@@ -360,7 +419,7 @@ def extract_topspeed_events(df, min_distance=200):
 
     triggers = detect_trigger_groups(df)
 
-    for start_idx in triggers:
+    for i, start_idx in enumerate(triggers):
         v_at_trigger = df.loc[start_idx, 'Velocidad_GPS']
 
         # Debe estar a velocidad alta (al menos 30 km/h)
@@ -369,9 +428,22 @@ def extract_topspeed_events(df, min_distance=200):
 
         d_start = df.loc[start_idx, 'Distancia']
 
-        # Buscar dónde se recorren min_distance metros
+        # Buscar dónde se recorren min_distance metros (sin exceder el siguiente trigger)
         search_end = min(len(df), start_idx + 600)  # Max 60s
+        if i + 1 < len(triggers):
+            search_end = min(search_end, triggers[i + 1])
+
         post_trigger = df.iloc[start_idx:search_end]
+
+        # Truncar si la velocidad cae por debajo de 20 km/h (intento abortado)
+        stopped_idx = None
+        for idx, row in post_trigger.iterrows():
+            if row['Velocidad_GPS'] < 20.0:
+                stopped_idx = idx
+                break
+
+        if stopped_idx is not None:
+            post_trigger = post_trigger.loc[:stopped_idx]
 
         reached = post_trigger[(post_trigger['Distancia'] - d_start) >= min_distance]
 
@@ -380,9 +452,10 @@ def extract_topspeed_events(df, min_distance=200):
 
         end_idx = reached.index[0]
         end_loc = df.index.get_loc(end_idx)
+        start_loc = df.index.get_loc(start_idx)
 
         # Buffer
-        slice_start = max(0, start_idx - 20)
+        slice_start = max(0, start_loc - 20)
         slice_end = min(len(df), end_loc + 11)
 
         event_df = df.iloc[slice_start:slice_end].copy()

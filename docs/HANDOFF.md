@@ -11,7 +11,7 @@
 | --------------------------- | --------------------------------- |
 | **Proyecto**          | Programa Análisis — INCOL       |
 | **Ruta**              | `Programa Analisis/`            |
-| **Versión actual**   | 1.0.5                             |
+| **Versión actual**   | 1.0.6                             |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje**          | Python 3                          |
 | **Framework UI**      | CustomTkinter                     |
@@ -19,6 +19,22 @@
 ---
 
 ## Registro de Cambios
+
+### v1.0.6 — Corrección de Detección de Eventos y Refinamiento Contextual de Inicio en Ascenso y Demás Pruebas (2026-08-14)
+
+**Objetivo:** Corregir la detección errónea de eventos en pruebas de ascenso donde maniobras previas o intentos abortados eran fusionados indebidamente con pasadas posteriores, generando tiempos distorsionados (como $8.8\text{ s}$ en lugar de $10.1\text{ s}$ por medir distancias incompletas) y colas negativas extensas en el eje de tiempo de las gráficas (ej. $-26.4\text{ s}$).
+
+* **Detección de Paradas en Ascenso (`event_detector.py`)**:
+  * En `extract_climbing_events`, se introdujo detección de paradas por histéresis: si la motocicleta inicia movimiento ($v > 5.0\text{ km/h}$) pero se detiene ($v < 2.0\text{ km/h}$) antes de recorrer los 70 metros, la búsqueda se trunca y el intento abortado o maniobra se descarta automáticamente.
+* **Delimitación Estricta entre Triggers (`event_detector.py`)**:
+  * Se restringió la ventana máxima de búsqueda en `extract_climbing_events`, `extract_acceleration_events`, `extract_recovery_events`, `extract_braking_events` y `extract_topspeed_events` para que ningún evento busque más allá del siguiente trigger consecutivo (`triggers[i+1]`).
+* **Refinamiento de Inicio Contextual (`event_detector.py`)**:
+  * En `refine_acceleration_start`, se eliminó la búsqueda global `starts[-1]` (que saltaba a paradas intermedias decenas de segundos en el futuro).
+  * Ahora analiza el entorno local del trigger: identifica el despegue de la rampa de velocidad ($v \ge 2.0\text{ km/h}$) y toma la última muestra previa en reposo ($v < 1.0\text{ km/h}$) o busca hacia atrás en el buffer previo si el trigger se pulsó en movimiento.
+* **Estandarización de Atributos (`event_detector.py`)**:
+  * Todos los extractores ahora registran consistentemente `event_df.attrs['start_idx']` y `event_df.attrs['end_idx']`.
+
+---
 
 ### v1.0.5 — Filtro de Intentos Abortados en Aceleración y Recuperación (2026-06-17)
 
