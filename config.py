@@ -58,6 +58,9 @@ RECOVERY_GROUPS = {
 # Benchmarks de velocidad para análisis detallado de aceleración
 ACCEL_BENCHMARKS = [0, 20, 40, 60, 80]
 
+# Caída máxima de velocidad permitida durante aceleración/ascenso (7 km/h)
+MAX_SPEED_DROP_KMH = 7.0
+
 # ══════════════════════════════════════════════════
 # TAMAÑOS DE GRÁFICAS (para Excel, en cm)
 # ══════════════════════════════════════════════════

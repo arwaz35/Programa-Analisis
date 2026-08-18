@@ -18,7 +18,7 @@ from plotting.speed_plotter import plot_speed_comparison, plot_speed_detailed
 from plotting.accel_plotter import plot_accel_vs_time
 from plotting.rpm_plotter import plot_rpm_vs_time
 from plotting.map_plotter import plot_gps_heatmap, plot_gps_route_simple
-from config import RESULTADOS_DIR
+from config import RESULTADOS_DIR, MAX_SPEED_DROP_KMH
 
 # ══════════════════════════════════════════════════════════════════════
 # MAPEO DE CELDAS EXCEL - Formato ft-nm-000-012.xlsx
@@ -296,6 +296,7 @@ class ClimbingModule(BaseModule):
 
             raw_events = extract_climbing_events(df, target_distance=70)
             valid_events = []
+            seen_starts = set()
             for evt_df in raw_events:
                 s_idx = evt_df.attrs.get('start_idx', evt_df.index[0])
                 e_idx = evt_df.attrs.get('end_idx', evt_df.index[-1])
@@ -303,17 +304,43 @@ class ClimbingModule(BaseModule):
                 # Refinar inicio
                 s_idx_refined = refine_acceleration_start(evt_df)
 
-                m = calculate_climbing_metrics(evt_df, s_idx_refined, e_idx)
+                # Evitar duplicados del mismo despegue físico
+                if s_idx_refined in seen_starts:
+                    continue
+                seen_starts.add(s_idx_refined)
+
+                # Recortar el DataFrame del evento para que el buffer previo sea de exactamente 20 muestras (2.0s)
+                # respecto al despegue real (s_idx_refined), eliminando tiempos muertos prolongados en reposo.
+                ref_loc = evt_df.index.get_loc(s_idx_refined)
+                new_slice_start = max(0, ref_loc - 20)
+                trimmed_df = evt_df.iloc[new_slice_start:].copy()
+                trimmed_df.attrs = evt_df.attrs.copy()
+                trimmed_df.attrs['start_idx'] = s_idx_refined
+
+                # Validar continuidad de aceleración (descartar intentos con caídas >= MAX_SPEED_DROP_KMH)
+                phase_v = trimmed_df.loc[s_idx_refined:e_idx, 'Velocidad_GPS']
+                peak_v = 0.0
+                has_excessive_drop = False
+                for v in phase_v:
+                    if v > peak_v:
+                        peak_v = v
+                    if peak_v >= 8.0 and (peak_v - v) >= MAX_SPEED_DROP_KMH:
+                        has_excessive_drop = True
+                        break
+                if has_excessive_drop:
+                    continue
+
+                m = calculate_climbing_metrics(trimmed_df, s_idx_refined, e_idx)
                 if m:
                     valid_events.append({
-                        'df': evt_df, 'metrics': m, 'pilot': inp['pilot'],
+                        'df': trimmed_df, 'metrics': m, 'pilot': inp['pilot'],
                         'weight': inp['weight'], 'id': len(valid_events) + 1,
                         'condition': condition
                     })
 
                     # Calcular pendiente (del primer evento válido)
                     if slope_data is None:
-                        slope_data = calculate_slope(evt_df, s_idx_refined, e_idx)
+                        slope_data = calculate_slope(trimmed_df, s_idx_refined, e_idx)
 
             if valid_events:
                 valid_events.sort(key=lambda x: x['metrics']['time_s'])

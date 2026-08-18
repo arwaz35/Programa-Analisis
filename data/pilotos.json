@@ -1,7 +1,7 @@
 [
     {
         "nombre": "Alexander Gomez",
-        "peso": 85.0,
+        "peso": 88.3,
         "altura": 190.0
     },
     {
@@ -11,22 +11,27 @@
     },
     {
         "nombre": "Andres Parra",
-        "peso": 91.0,
+        "peso": 90.8,
         "altura": 175.0
     },
     {
         "nombre": "Fredy Valencia",
-        "peso": 63.0,
+        "peso": 70.0,
         "altura": 165.0
     },
     {
         "nombre": "Laura Barrientos",
-        "peso": 70.0,
+        "peso": 72.9,
         "altura": 175.0
     },
     {
         "nombre": "Jorge Ceballos",
-        "peso": 87.0,
+        "peso": 91.5,
         "altura": 180.0
+    },
+    {
+        "nombre": "Jorge Londoño",
+        "peso": 85.5,
+        "altura": 170.0
     }
 ]

@@ -5,7 +5,7 @@ Eventos se identifican por Pulsador == 100.
 import pandas as pd
 import numpy as np
 from config import (TRIGGER_VALUE, TRIGGER_DEBOUNCE_SAMPLES,
-                    SAMPLE_INTERVAL_S, RECOVERY_GROUPS)
+                    SAMPLE_INTERVAL_S, RECOVERY_GROUPS, MAX_SPEED_DROP_KMH)
 
 
 def detect_trigger_groups(df):
@@ -94,21 +94,56 @@ def extract_acceleration_events(df, target_speed=80):
     triggers = detect_trigger_groups(df)
 
     for i, start_idx in enumerate(triggers):
-        search_end = min(len(df), start_idx + 600)  # Max 60s
-        if i + 1 < len(triggers):
-            search_end = min(search_end, triggers[i + 1])
+        v_start = df.loc[start_idx, 'Velocidad_GPS']
+        if v_start > 5.0:  # Debe iniciar desde ~0
+            continue
 
-        post_trigger = df.iloc[start_idx:search_end]
+        start_loc = df.index.get_loc(start_idx)
+        search_end_loc = min(len(df), start_loc + 600)  # Max 60s
 
-        # Truncar la búsqueda si la moto se detiene después de haber iniciado movimiento
-        # para no unir intentos abortados con intentos exitosos subsiguientes.
+        # Delimitar con el siguiente trigger relevante:
+        # Solo acotar si el siguiente trigger ocurrió antes de arrancar (v <= 5.0 todo el tramo intermedio)
+        # o después de que la moto ya se haya detenido tras haber iniciado movimiento.
+        for next_idx in triggers[i + 1:]:
+            next_loc = df.index.get_loc(next_idx)
+            sub_v = df['Velocidad_GPS'].iloc[start_loc:next_loc]
+
+            # 1. Si el siguiente trigger ocurrió mientras la moto seguía detenida/acomodándose
+            if (sub_v <= 5.0).all():
+                search_end_loc = min(search_end_loc, next_loc)
+                break
+
+            # 2. Si el siguiente trigger ocurrió después de que la moto aceleró y se detuvo
+            moving_flag = False
+            stopped_flag = False
+            for v_chk in sub_v:
+                if v_chk > 5.0:
+                    moving_flag = True
+                if moving_flag and v_chk < 2.0:
+                    stopped_flag = True
+                    break
+            if stopped_flag:
+                search_end_loc = min(search_end_loc, next_loc)
+                break
+
+        post_trigger = df.iloc[start_loc:search_end_loc]
+
+        # Truncar la búsqueda si la moto se detiene o desacelera anómalamente
+        # tras haber iniciado movimiento (intento abortado / pérdida de tracción).
         moving = False
         stopped_idx = None
+        peak_v = 0.0
         for idx, row in post_trigger.iterrows():
             v = row['Velocidad_GPS']
+            if v > peak_v:
+                peak_v = v
             if v > 5.0:
                 moving = True
             if moving and v < 2.0:
+                stopped_idx = idx
+                break
+            # Caída de velocidad anómala (>= MAX_SPEED_DROP_KMH)
+            if peak_v >= 8.0 and (peak_v - v) >= MAX_SPEED_DROP_KMH:
                 stopped_idx = idx
                 break
 
@@ -122,7 +157,6 @@ def extract_acceleration_events(df, target_speed=80):
 
         target_idx = achieved.index[0]
         target_loc = df.index.get_loc(target_idx)
-        start_loc = df.index.get_loc(start_idx)
 
         # Buffer: 2s antes del trigger, 1s después del target
         slice_start = max(0, start_loc - 20)
@@ -356,23 +390,52 @@ def extract_climbing_events(df, target_distance=70):
             continue
 
         d_start = df.loc[start_idx, 'Distancia']
+        start_loc = df.index.get_loc(start_idx)
+        search_end_loc = min(len(df), start_loc + 600)  # Max 60s
 
-        # Buscar dónde se alcanzan target_distance metros (sin exceder el siguiente trigger)
-        search_end = min(len(df), start_idx + 600)  # Max 60s
-        if i + 1 < len(triggers):
-            search_end = min(search_end, triggers[i + 1])
+        # Delimitar con el siguiente trigger relevante:
+        # Solo acotar si el siguiente trigger ocurrió antes de arrancar (v <= 5.0 todo el tramo intermedio)
+        # o después de que la moto ya se haya detenido tras haber iniciado movimiento.
+        for next_idx in triggers[i + 1:]:
+            next_loc = df.index.get_loc(next_idx)
+            sub_v = df['Velocidad_GPS'].iloc[start_loc:next_loc]
 
-        post_trigger = df.iloc[start_idx:search_end]
+            # 1. Si el siguiente trigger ocurrió mientras la moto seguía detenida/acomodándose
+            if (sub_v <= 5.0).all():
+                search_end_loc = min(search_end_loc, next_loc)
+                break
 
-        # Truncar la búsqueda si la moto se detiene después de haber iniciado movimiento
-        # para no unir intentos abortados con intentos exitosos subsiguientes.
+            # 2. Si el siguiente trigger ocurrió después de que la moto aceleró y se detuvo
+            moving_flag = False
+            stopped_flag = False
+            for v_chk in sub_v:
+                if v_chk > 5.0:
+                    moving_flag = True
+                if moving_flag and v_chk < 2.0:
+                    stopped_flag = True
+                    break
+            if stopped_flag:
+                search_end_loc = min(search_end_loc, next_loc)
+                break
+
+        post_trigger = df.iloc[start_loc:search_end_loc]
+
+        # Truncar la búsqueda si la moto se detiene o desacelera anómalamente
+        # tras haber iniciado movimiento (intento abortado / frenada).
         moving = False
         stopped_idx = None
+        peak_v = 0.0
         for idx, row in post_trigger.iterrows():
             v = row['Velocidad_GPS']
+            if v > peak_v:
+                peak_v = v
             if v > 5.0:
                 moving = True
             if moving and v < 2.0:
+                stopped_idx = idx
+                break
+            # Caída de velocidad anómala (>= MAX_SPEED_DROP_KMH)
+            if peak_v >= 8.0 and (peak_v - v) >= MAX_SPEED_DROP_KMH:
                 stopped_idx = idx
                 break
 
@@ -386,7 +449,6 @@ def extract_climbing_events(df, target_distance=70):
 
         end_idx = reached.index[0]
         end_loc = df.index.get_loc(end_idx)
-        start_loc = df.index.get_loc(start_idx)
 
         # Buffer: 2s antes del trigger, 1s después del final
         slice_start = max(0, start_loc - 20)

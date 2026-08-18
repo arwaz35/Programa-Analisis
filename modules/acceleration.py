@@ -20,7 +20,7 @@ from plotting.speed_plotter import plot_speed_comparison, plot_speed_detailed
 from plotting.accel_plotter import plot_accel_vs_time
 from plotting.rpm_plotter import plot_rpm_vs_time
 from plotting.map_plotter import plot_gps_heatmap, plot_gps_route_simple
-from config import ACCEL_BENCHMARKS, RESULTADOS_DIR
+from config import ACCEL_BENCHMARKS, RESULTADOS_DIR, MAX_SPEED_DROP_KMH
 
 # ══════════════════════════════════════════════════════════════════════
 # MAPEO DE CELDAS EXCEL - Formato ft-nm-000-008.xlsx
@@ -296,14 +296,38 @@ class AccelerationModule(BaseModule):
         # --- ACELERACIÓN 0-TOPE ---
         raw_accel = extract_acceleration_events(df, target_speed=target_speed)
         valid_accel = []
+        seen_starts = set()
         for evt_df in raw_accel:
             s_idx = refine_acceleration_start(evt_df)
-            m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=target_speed)
+            if s_idx in seen_starts:
+                continue
+            seen_starts.add(s_idx)
+
+            ref_loc = evt_df.index.get_loc(s_idx)
+            new_slice_start = max(0, ref_loc - 20)
+            trimmed_df = evt_df.iloc[new_slice_start:].copy()
+            trimmed_df.attrs = evt_df.attrs.copy()
+            trimmed_df.attrs['start_idx'] = s_idx
+
+            m = calculate_acceleration_metrics(trimmed_df, s_idx, target_speed=target_speed)
             if m:
-                v_s = evt_df.loc[s_idx, 'Velocidad_GPS']
+                # Validar continuidad de aceleración (sin caídas >= MAX_SPEED_DROP_KMH)
+                phase_v = trimmed_df.loc[s_idx:m['end_idx'], 'Velocidad_GPS']
+                peak_v = 0.0
+                has_excessive_drop = False
+                for v in phase_v:
+                    if v > peak_v:
+                        peak_v = v
+                    if peak_v >= 8.0 and (peak_v - v) >= MAX_SPEED_DROP_KMH:
+                        has_excessive_drop = True
+                        break
+                if has_excessive_drop:
+                    continue
+
+                v_s = trimmed_df.loc[s_idx, 'Velocidad_GPS']
                 if v_s < 5.0:  # Confirmar inicio desde ~0
                     valid_accel.append({
-                        'df': evt_df, 'metrics': m, 'pilot': pilot,
+                        'df': trimmed_df, 'metrics': m, 'pilot': pilot,
                         'weight': weight, 'id': len(valid_accel) + 1
                     })
 
@@ -554,14 +578,38 @@ class AccelerationModule(BaseModule):
             # Extraer Aceleración
             raw_accel = extract_acceleration_events(df, target_speed=target_speed)
             valid_accel = []
+            seen_starts = set()
             for evt_df in raw_accel:
                 s_idx = refine_acceleration_start(evt_df)
-                m = calculate_acceleration_metrics(evt_df, s_idx, target_speed=target_speed)
+                if s_idx in seen_starts:
+                    continue
+                seen_starts.add(s_idx)
+
+                ref_loc = evt_df.index.get_loc(s_idx)
+                new_slice_start = max(0, ref_loc - 20)
+                trimmed_df = evt_df.iloc[new_slice_start:].copy()
+                trimmed_df.attrs = evt_df.attrs.copy()
+                trimmed_df.attrs['start_idx'] = s_idx
+
+                m = calculate_acceleration_metrics(trimmed_df, s_idx, target_speed=target_speed)
                 if m:
-                    v_s = evt_df.loc[s_idx, 'Velocidad_GPS']
+                    # Validar continuidad de aceleración (sin caídas >= MAX_SPEED_DROP_KMH)
+                    phase_v = trimmed_df.loc[s_idx:m['end_idx'], 'Velocidad_GPS']
+                    peak_v = 0.0
+                    has_excessive_drop = False
+                    for v in phase_v:
+                        if v > peak_v:
+                            peak_v = v
+                        if peak_v >= 8.0 and (peak_v - v) >= MAX_SPEED_DROP_KMH:
+                            has_excessive_drop = True
+                            break
+                    if has_excessive_drop:
+                        continue
+
+                    v_s = trimmed_df.loc[s_idx, 'Velocidad_GPS']
                     if v_s < 5.0:
                         valid_accel.append({
-                            'df': evt_df, 'metrics': m, 'pilot': inp['pilot'],
+                            'df': trimmed_df, 'metrics': m, 'pilot': inp['pilot'],
                             'weight': inp['weight'], 'id': len(valid_accel) + 1
                         })
             if valid_accel:

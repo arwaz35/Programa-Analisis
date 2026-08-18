@@ -11,7 +11,7 @@
 | --------------------------- | --------------------------------- |
 | **Proyecto**          | Programa Análisis — INCOL       |
 | **Ruta**              | `Programa Analisis/`            |
-| **Versión actual**   | 1.0.6                             |
+| **Versión actual**   | 1.0.8                             |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje**          | Python 3                          |
 | **Framework UI**      | CustomTkinter                     |
@@ -19,6 +19,34 @@
 ---
 
 ## Registro de Cambios
+
+### v1.0.8 — Filtro de Descarte por Desaceleración Anómala / Frenada en Pruebas (2026-08-18)
+
+**Objetivo:** Descartar automáticamente pasadas de aceleración y ascenso que presenten interrupciones, frenadas o pérdidas severas de tracción antes de alcanzar la distancia o velocidad objetivo, evitando que curvas de velocidad anómalas (como caídas de velocidad a mitad de la subida) se clasifiquen como válidas.
+
+* **Constante Global `MAX_SPEED_DROP_KMH` (`config.py`)**:
+  * Se configuró en **$7.0\text{ km/h}$** la caída máxima permitida de velocidad respecto al pico alcanzado durante la marcha activa ($v \ge 8.0\text{ km/h}$).
+* **Detección y Truncamiento por Caída de Velocidad (`event_detector.py`)**:
+  * En `extract_climbing_events` y `extract_acceleration_events`, si la velocidad disminuye $\ge 7.0\text{ km/h}$ respecto a la velocidad máxima acumulada durante el intento, la búsqueda se trunca y el intento se descarta por falta de continuidad.
+* **Validación Doble de Continuidad (`climbing.py`, `acceleration.py`)**:
+  * Se agregó una verificación estricta en el tramo útil de aceleración para garantizar que ninguna pasada con caídas $\ge 7.0\text{ km/h}$ ingrese al ranking de mejores eventos o al informe Excel.
+
+---
+
+### v1.0.7 — Delimitación Inteligente de Triggers y Normalización de Buffer Previo (2026-08-18)
+
+**Objetivo:** Evitar que pulsaciones accidentales o repetidas en plena marcha ($v > 5.0\text{ km/h}$) interrumpan o descarten pruebas válidas en curso, y eliminar tiempos muertos prolongados en las gráficas cuando el piloto demora varios segundos en arrancar tras accionar el pulsador.
+
+* **Delimitación Inteligente entre Triggers (`event_detector.py`)**:
+  * En `extract_climbing_events` y `extract_acceleration_events`, se actualizó la regla de corte entre triggers:
+    * Un trigger posterior solo delimita/anula al trigger anterior si ocurre mientras la motocicleta aún permanece detenida ($v \le 5.0\text{ km/h}$ en todo el tramo intermedio) o después de haberse detenido tras completar/abortar el intento previo.
+    * Las pulsaciones que ocurran mientras la moto ya va en plena marcha ($v > 5.0\text{ km/h}$) se ignoran y no interrumpen la prueba en curso, rescatando pasadas completas que antes eran canceladas indebidamente (ej. Pasada 2 en `Ray Z ascenso pasajero.csv`).
+* **Normalización de Buffer Previo (`climbing.py`, `acceleration.py`)**:
+  * El DataFrame del evento se recorta automáticamente para comenzar exactamente **20 muestras ($\approx 2.0\text{ s}$)** antes del despegue real (`s_idx_refined`), eliminando cualquier línea horizontal kilométrica a $0\text{ km/h}$ en las gráficas si el piloto esperó en reposo antes de arrancar.
+* **Deduplicación de Eventos Físicos (`climbing.py`, `acceleration.py`)**:
+  * Se implementó un filtro de unicidad basado en `s_idx_refined` para asegurar que múltiples pulsaciones asociadas al mismo arranque computen una sola vez.
+
+---
 
 ### v1.0.6 — Corrección de Detección de Eventos y Refinamiento Contextual de Inicio en Ascenso y Demás Pruebas (2026-08-14)
 
