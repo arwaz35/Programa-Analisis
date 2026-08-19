@@ -23,5 +23,10 @@
         "Nombre": "Ascenso",
         "Altitud (msnm)": "1440",
         "Coordenadas (Lat, Lon)": "6.387527, -75.462427"
+    },
+    {
+        "Nombre": "Santa Fe de Antioquia",
+        "Altitud (msnm)": "500",
+        "Coordenadas (Lat, Lon)": "6.504520, -75.826857"
     }
 ]

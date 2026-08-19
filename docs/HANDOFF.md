@@ -11,7 +11,7 @@
 | --------------------------- | --------------------------------- |
 | **Proyecto**          | Programa Análisis — INCOL       |
 | **Ruta**              | `Programa Analisis/`            |
-| **Versión actual**   | 1.0.8                             |
+| **Versión actual**   | 1.0.9                             |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje**          | Python 3                          |
 | **Framework UI**      | CustomTkinter                     |
@@ -19,6 +19,20 @@
 ---
 
 ## Registro de Cambios
+
+### v1.0.9 — Robustez y Fiabilidad en la Generación de Mapas GPS (2026-08-19)
+
+**Objetivo:** Eliminar la intermitencia en la generación de mapas GPS (como el mapa de trazado del lugar o el mapa de recuperación 40-80 en los reportes Excel) causada por timeouts de red al verificar conexión o descargar cuadrículas de satélite.
+
+* **Caché y Verificación Multi-Servidor (`map_plotter.py`)**:
+  * Se implementó un sistema de caché de conexión a internet (`cache_ttl=60` s) para evitar comprobaciones de red redundantes y lentas antes de cada sub-mapa.
+  * Se agregaron múltiples servidores DNS de contingencia (`8.8.8.8`, `1.1.1.1`, `8.8.4.4`) con timeout extendido ($2.5\text{ s}$) para prevenir falsos negativos por latencia o jitter de red.
+* **Reintentos Automáticos de Descarga de Cuadrículas (`map_plotter.py`)**:
+  * Tanto `plot_gps_heatmap` como `plot_gps_route_simple` ahora reintentan hasta 3 veces automáticamente ante fallas transitorias en la descarga de teselas/cuadrículas satelitales.
+* **Fallback para Mapa de Contexto (`acceleration.py`)**:
+  * Se añadió un fallback seguro para el trazado de la pista cuando no existan eventos 0-80 (usando eventos de recuperación o el recorrido global).
+
+---
 
 ### v1.0.8 — Filtro de Descarte por Desaceleración Anómala / Frenada en Pruebas (2026-08-18)
 

@@ -7,16 +7,34 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 import io
+import socket
+import time
+
+_INTERNET_CACHE = {'connected': None, 'timestamp': 0}
 
 
-def _check_internet():
-    """Verifica conexión a internet rápidamente."""
-    import socket
-    try:
-        socket.create_connection(("1.1.1.1", 53), timeout=1)
-        return True
-    except OSError:
-        return False
+def _check_internet(cache_ttl=60):
+    """
+    Verifica conexión a internet de forma confiable con caché.
+    Consulta múltiples servidores DNS con un timeout de 2.5 segundos.
+    """
+    now = time.time()
+    if _INTERNET_CACHE['connected'] is not None and (now - _INTERNET_CACHE['timestamp']) < cache_ttl:
+        return _INTERNET_CACHE['connected']
+
+    hosts = [('8.8.8.8', 53), ('1.1.1.1', 53), ('8.8.4.4', 53)]
+    for host, port in hosts:
+        try:
+            socket.create_connection((host, port), timeout=2.5)
+            _INTERNET_CACHE['connected'] = True
+            _INTERNET_CACHE['timestamp'] = now
+            return True
+        except OSError:
+            continue
+
+    _INTERNET_CACHE['connected'] = False
+    _INTERNET_CACHE['timestamp'] = now
+    return False
 
 
 def plot_gps_heatmap(event, title="Ubicación de la prueba"):
@@ -78,8 +96,20 @@ def plot_gps_heatmap(event, title="Ubicación de la prueba"):
             coords = [(lons[i], lats[i]), (lons[i+1], lats[i+1])]
             m.add_line(Line(coords, hex_color, 4))
 
-        # Renderizar mapa
-        image = m.render()
+        # Renderizar mapa con reintentos
+        image = None
+        for attempt in range(3):
+            try:
+                image = m.render()
+                break
+            except Exception as ex:
+                if attempt < 2:
+                    time.sleep(0.5)
+                else:
+                    print(f"Error al descargar cuadrículas de mapa GPS: {ex}")
+
+        if image is None:
+            return None
 
         # Agregar leyenda de colores con matplotlib
         fig, (ax_map, ax_cb) = plt.subplots(1, 2, figsize=(10, 6),
@@ -140,7 +170,20 @@ def plot_gps_route_simple(df, title=None, distance_m=0, slope_data=None):
         coords = [(lons[i], lats[i]) for i in range(len(lats))]
         m.add_line(Line(coords, '#2196F3', 5))
 
-        image = m.render()
+        # Renderizar mapa con reintentos
+        image = None
+        for attempt in range(3):
+            try:
+                image = m.render()
+                break
+            except Exception as ex:
+                if attempt < 2:
+                    time.sleep(0.5)
+                else:
+                    print(f"Error al descargar cuadrículas de mapa simple: {ex}")
+
+        if image is None:
+            return None
 
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.imshow(image)
@@ -165,3 +208,4 @@ def plot_gps_route_simple(df, title=None, distance_m=0, slope_data=None):
     except Exception as e:
         print(f"Error generando mapa simple: {e}")
         return None
+

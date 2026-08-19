@@ -391,8 +391,9 @@ class AccelerationModule(BaseModule):
 
         # Mapa contexto
         context_map = None
-        if best_accel:
-            context_map_buf = plot_gps_route_simple(best_accel['df'], distance_m=dist_total)
+        target_df_for_map = best_accel['df'] if best_accel else (valid_rec[0]['df'] if valid_rec else df)
+        if target_df_for_map is not None:
+            context_map_buf = plot_gps_route_simple(target_df_for_map, distance_m=dist_total)
             if context_map_buf:
                 context_map = context_map_buf.getvalue()
 
