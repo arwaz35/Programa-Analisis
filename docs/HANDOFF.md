@@ -11,7 +11,7 @@
 | --------------------------- | --------------------------------- |
 | **Proyecto**          | Programa Análisis — INCOL       |
 | **Ruta**              | `Programa Analisis/`            |
-| **Versión actual**   | 1.0.9                             |
+| **Versión actual**   | 1.0.10                            |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje**          | Python 3                          |
 | **Framework UI**      | CustomTkinter                     |
@@ -19,6 +19,16 @@
 ---
 
 ## Registro de Cambios
+
+### v1.0.10 — Inserción de Foto de Pasajero en Reportes Excel (2026-08-19)
+
+**Objetivo:** Corregir la ausencia de la foto del pasajero en el informe Excel generado para pruebas de ascenso (y demás módulos donde se configure pasajero).
+
+* **Inserción de Foto de Pasajero (`excel_reporter.py`)**:
+  * En `_fill_common_data` y `generate_climbing`, se agregó la llamada a `_insert_image_from_file` para buscar y colocar la foto del pasajero (`get_piloto_foto_path(pax_name)`) en la celda `pasajero_foto` (`J48` en ascenso, `J50` en aceleración).
+  * Se agregó soporte para leer el pasajero de cualquiera de las entradas configuradas (`inputs[1]` o `inputs[0]`).
+
+---
 
 ### v1.0.9 — Robustez y Fiabilidad en la Generación de Mapas GPS (2026-08-19)
 

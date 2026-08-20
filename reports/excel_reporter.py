@@ -160,6 +160,18 @@ class ExcelReporter:
                                             cells.get("piloto_foto", "B34"),
                                             width_cm=5.0)
 
+            # ── CONDICIONES - PASAJERO SI EXISTE ──
+            pax_name = inputs.get('passenger', '')
+            if pax_name:
+                ws[cells.get("pasajero_nombre", "J46")] = pax_name
+                ws[cells.get("pasajero_peso", "J47")] = self._fmt_unit(inputs.get('pax_weight', ''), 'kg')
+                ws[cells.get("pasajero_altura", "J48")] = self._fmt_unit(inputs.get('pax_altura', ''), 'cm')
+                pax_foto = get_piloto_foto_path(pax_name)
+                if pax_foto:
+                    self._insert_image_from_file(ws, pax_foto,
+                                                cells.get("pasajero_foto", "J50"),
+                                                width_cm=5.0)
+
             ws[cells.get("lugar_nombre", "W30")] = lugar.get('Nombre', '')
             if ctx:
                 ws[cells.get("lugar_altitud", "W31")] = self._fmt(ctx.get('altitud_promedio_msnm', ''))
@@ -351,6 +363,23 @@ class ExcelReporter:
         if piloto_foto:
             self._insert_image_from_file(ws, piloto_foto, cells.get("piloto_foto", "B34"), width_cm=5.0)
 
+        # Condiciones - Pasajero si existe
+        pax = None
+        if len(inputs) > 1 and inputs[1].get('passenger'):
+            pax = inputs[1]
+        elif inputs and inputs[0].get('passenger'):
+            pax = inputs[0]
+
+        if pax:
+            ws[cells.get("pasajero_nombre", "J44")] = pax.get('passenger', '')
+            ws[cells.get("pasajero_peso", "J45")] = self._fmt_unit(pax.get('pax_weight', ''), 'kg')
+            ws[cells.get("pasajero_altura", "J46")] = self._fmt_unit(pax.get('pax_altura', ''), 'cm')
+            pax_name = pax.get('passenger', '')
+            if pax_name:
+                pax_foto = get_piloto_foto_path(pax_name)
+                if pax_foto:
+                    self._insert_image_from_file(ws, pax_foto, cells.get("pasajero_foto", "J48"), width_cm=5.0)
+
         # Condiciones - Lugar
         ws[cells.get("lugar_nombre", "W30")] = lugar.get('Nombre', '')
         if ctx:
@@ -497,14 +526,6 @@ class ExcelReporter:
             wb = openpyxl.load_workbook(template_path)
             ws = wb.active
             cells, sizes, map_size = self._fill_common_data(ws, preview_data)
-
-            # Pasajero (del archivo 2)
-            inputs = preview_data.get('inputs', [])
-            if len(inputs) > 1:
-                pax = inputs[1]
-                ws[cells.get("pasajero_nombre", "J44")] = pax.get('passenger', '')
-                ws[cells.get("pasajero_peso", "J45")] = self._fmt_unit(pax.get('pax_weight', ''), 'kg')
-                ws[cells.get("pasajero_altura", "J46")] = self._fmt_unit(pax.get('pax_altura', ''), 'cm')
 
             c_data = preview_data.get('climbing_data', {})
             vel_size = sizes.get("grafica_vel", (7.0, 17.5))
