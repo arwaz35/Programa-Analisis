@@ -14,9 +14,10 @@ class BaseModule(ctk.CTkFrame):
       - process(): Ejecutar el análisis
     """
 
-    def __init__(self, parent, data_handler):
+    def __init__(self, parent, data_handler, mode="individual"):
         super().__init__(parent)
         self.data_handler = data_handler
+        self.mode = mode
         self.build_ui()
 
     def build_ui(self):

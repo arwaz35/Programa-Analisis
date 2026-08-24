@@ -134,12 +134,10 @@ class AccelerationModule(BaseModule):
         self.files_frame = ctk.CTkFrame(self)
         self.files_frame.pack(fill="x", padx=10, pady=5)
 
-        # Fila 1: Archivo principal
-        self._create_file_row(self.files_frame, 1)
-        # Fila 2: Archivo comparativo (opcional)
-        self._create_file_row(self.files_frame, 2)
-        # Fila 3: Archivo comparativo 2 (opcional)
-        self._create_file_row(self.files_frame, 3)
+        self.file_numbers = [1] if getattr(self, 'mode', 'individual') == 'individual' else [1, 2, 3]
+
+        for num in self.file_numbers:
+            self._create_file_row(self.files_frame, num)
 
         self.refresh_combos()
 
@@ -147,7 +145,8 @@ class AccelerationModule(BaseModule):
         row = ctk.CTkFrame(parent)
         row.pack(fill="x", padx=5, pady=5)
 
-        ctk.CTkLabel(row, text=f"Archivo {num}:", font=("Arial", 12, "bold")).pack(side="left", padx=5)
+        label_text = f"Archivo {num}:" if len(self.file_numbers) > 1 else "Archivo CSV:"
+        ctk.CTkLabel(row, text=label_text, font=("Arial", 12, "bold")).pack(side="left", padx=5)
 
         # Moto combo
         moto_combo = ctk.CTkComboBox(row, values=["Seleccione Moto..."], width=150)
@@ -196,19 +195,19 @@ class AccelerationModule(BaseModule):
         if not lugar_names:
             lugar_names = ["Sin lugares registrados"]
 
-        for num in [1, 2, 3]:
+        for num in getattr(self, 'file_numbers', [1]):
             getattr(self, f'moto_combo_{num}').configure(values=moto_names)
             getattr(self, f'pilot_combo_{num}').configure(values=pilot_names)
             getattr(self, f'lugar_combo_{num}').configure(values=lugar_names)
 
     def get_data(self):
-        """Retorna lista de inputs válidos (1 o 2 archivos)."""
+        """Retorna lista de inputs válidos."""
         inputs = []
         pilotos_data = self.data_handler.load_pilotos()
         motos_data = self.data_handler.load_motos()
         lugares_data = self.data_handler.load_lugares()
 
-        for num in [1, 2, 3]:
+        for num in getattr(self, 'file_numbers', [1]):
             path = getattr(self, f'path_entry_{num}').get()
             pilot = getattr(self, f'pilot_combo_{num}').get()
             moto_str = getattr(self, f'moto_combo_{num}').get()
@@ -555,9 +554,11 @@ class AccelerationModule(BaseModule):
         # 1. Lógica de Nombres
         motos = [inp.get('moto_data', {}) for inp in inputs]
         lugares = [inp.get('lugar_data', {}) for inp in inputs]
-        
+        pilots = [inp.get('pilot', '') for inp in inputs]
+
         motos_same = all(m == motos[0] for m in motos)
         lugares_same = all(l == lugares[0] for l in lugares)
+        pilots_same = all(p == pilots[0] for p in pilots)
 
         primary = inputs[0]
         try:
@@ -638,14 +639,15 @@ class AccelerationModule(BaseModule):
                         'top_3': group_evs[:3]
                     }
 
-            if motos_same:
-                d_name = lugares[i].get('Nombre', f"Event {i+1}")
-            elif lugares_same:
+            if not motos_same:
                 m = motos[i]
-                d_name = f"{m.get('Nombre Comercial', '')} {m.get('Codigo', '')}".strip()
-                if not d_name: d_name = f"Event {i+1}"
+                d_name = m.get('Código Modelo') or m.get('Codigo') or m.get('Nombre Comercial', f"Moto {i+1}")
+            elif not pilots_same:
+                d_name = pilots[i]
+            elif not lugares_same:
+                d_name = lugares[i].get('Nombre', f"Lugar {i+1}")
             else:
-                d_name = f"Event {i+1}"
+                d_name = f"Pasada {i+1}"
 
             parsed_data.append({
                 'df': df,

@@ -2,7 +2,7 @@
 Programa Análisis de Datos - INCOL
 Punto de entrada principal.
 
-Versión 1.0.10
+Versión 1.1.0
 """
 import sys
 import os
@@ -44,8 +44,9 @@ class App(ctk.CTk):
         ensure_directories()
         self.data_handler = DataHandler()
 
-        # Módulo activo
+        # Módulo activo y modo
         self.current_module = None
+        self.current_mode = "individual"
 
         # Mostrar menú principal
         self.show_main_menu()
@@ -70,17 +71,25 @@ class App(ctk.CTk):
         ctk.CTkLabel(center, text="Sistema de Análisis de Datos",
                      font=("Arial", 18)).pack(pady=(0, 5))
         ctk.CTkLabel(center, text=f"Versión {VERSION}",
-                     font=("Arial", 12), text_color="gray").pack(pady=(0, 30))
+                     font=("Arial", 12), text_color="gray").pack(pady=(0, 20))
 
-        # Botón principal
-        ctk.CTkButton(center, text="🔬 Selección de Pruebas",
-                      font=("Arial", 18, "bold"), height=50, width=300,
+        # Botones principales de análisis
+        analysis_frame = ctk.CTkFrame(center, fg_color="transparent")
+        analysis_frame.pack(pady=10)
+
+        ctk.CTkButton(analysis_frame, text="🔬 Individual",
+                      font=("Arial", 16, "bold"), height=48, width=280,
                       fg_color="#2196F3", hover_color="#1976D2",
-                      command=self.show_test_selection).pack(pady=15)
+                      command=lambda: self.show_test_selection(mode="individual")).pack(pady=5)
+
+        ctk.CTkButton(analysis_frame, text="⚖️ Comparación",
+                      font=("Arial", 16, "bold"), height=48, width=280,
+                      fg_color="#3F51B5", hover_color="#303F9F",
+                      command=lambda: self.show_test_selection(mode="comparison")).pack(pady=5)
 
         # Botones de gestión
         mgmt = ctk.CTkFrame(center, fg_color="transparent")
-        mgmt.pack(pady=20)
+        mgmt.pack(pady=15)
 
         btns = [
             ("🏍 Gestión de Motos", "#4CAF50", "#388E3C", lambda: show_gestion_motos(self)),
@@ -90,13 +99,16 @@ class App(ctk.CTk):
         for txt, fg, hv, cmd in btns:
             ctk.CTkButton(mgmt, text=txt, font=("Arial", 14, "bold"),
                          height=40, width=250, fg_color=fg, hover_color=hv,
-                         text_color="white", command=cmd).pack(pady=5)
+                         text_color="white", command=cmd).pack(pady=4)
 
     # ══════════════════════════════════════════════════
-    # SELECCIÓN DE PRUEBAS
+    # SELECCIÓN DE PRUEBAS (INDIVIDUAL / COMPARACIÓN)
     # ══════════════════════════════════════════════════
-    def show_test_selection(self):
+    def show_test_selection(self, mode="individual"):
         self.clear_window()
+        self.current_mode = mode
+
+        title_text = "Pruebas Individuales" if mode == "individual" else "Comparación de Pruebas"
 
         # --- Barra superior ---
         top_bar = ctk.CTkFrame(self)
@@ -104,7 +116,7 @@ class App(ctk.CTk):
         ctk.CTkButton(top_bar, text="⬅ Menú Principal", font=("Arial", 12),
                       fg_color="gray", hover_color="darkgray",
                       command=self.show_main_menu).pack(side="left", padx=10)
-        ctk.CTkLabel(top_bar, text="Selección de Pruebas",
+        ctk.CTkLabel(top_bar, text=title_text,
                      font=("Arial", 20, "bold")).pack(side="left", padx=20)
 
         # --- Contenido principal (2 columnas) ---
@@ -128,7 +140,7 @@ class App(ctk.CTk):
         for txt, fg, hv, key in test_types:
             ctk.CTkButton(left, text=txt, font=("Arial", 13, "bold"),
                          height=40, width=270, fg_color=fg, hover_color=hv,
-                         command=lambda k=key: self._load_module(k)).pack(pady=3, padx=10)
+                         command=lambda k=key: self._load_module(k, mode)).pack(pady=3, padx=10)
 
         # Condiciones ambientales
         ctk.CTkLabel(left, text="🌡 Condiciones ambientales",
@@ -169,10 +181,21 @@ class App(ctk.CTk):
         ctk.CTkLabel(self.module_frame, text="Seleccione un tipo de prueba",
                      font=("Arial", 16), text_color="gray").pack(expand=True)
 
-    def _load_module(self, module_key):
+    def _load_module(self, module_key, mode="individual"):
         """Carga el módulo de prueba correspondiente."""
         for w in self.module_frame.winfo_children():
             w.destroy()
+
+        if mode == "comparison" and module_key == "climb":
+            placeholder = ctk.CTkFrame(self.module_frame, fg_color="transparent")
+            placeholder.pack(expand=True)
+            ctk.CTkLabel(placeholder, text="🚧 Módulo en Construcción",
+                         font=("Arial", 20, "bold")).pack(pady=10)
+            ctk.CTkLabel(placeholder,
+                         text="La comparación de pruebas de ascenso estará disponible\nen una próxima actualización.\n\nPuede utilizar la sección 'Individual' para analizar pruebas de ascenso.",
+                         font=("Arial", 13), text_color="gray", justify="center").pack(pady=10)
+            self.current_module = None
+            return
 
         modules = {
             "accel": AccelerationModule,
@@ -183,7 +206,7 @@ class App(ctk.CTk):
 
         cls = modules.get(module_key)
         if cls:
-            self.current_module = cls(self.module_frame, self.data_handler)
+            self.current_module = cls(self.module_frame, self.data_handler, mode=mode)
             self.current_module.pack(fill="both", expand=True)
 
     def _get_env_conditions(self):

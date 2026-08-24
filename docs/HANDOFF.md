@@ -11,7 +11,7 @@
 | --------------------------- | --------------------------------- |
 | **Proyecto**          | Programa Análisis — INCOL       |
 | **Ruta**              | `Programa Analisis/`            |
-| **Versión actual**   | 1.0.10                            |
+| **Versión actual**   | 1.1.0                             |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje**          | Python 3                          |
 | **Framework UI**      | CustomTkinter                     |
@@ -19,6 +19,30 @@
 ---
 
 ## Registro de Cambios
+
+### v1.1.0 — Separación de Modos (Individual / Comparación) y Detección Inteligente (2026-08-24)
+
+**Objetivo:** Reestructurar la interfaz de usuario en dos modos de trabajo independientes (**Individual** y **Comparación**) con diseño compartido de dos columnas, simplificando la captura de datos en pruebas individuales a 1 solo archivo y dotando al sistema de detección inteligente de variables de comparación sin alterar el formato estándar de Excel.
+
+* **Menú Principal con Flujos Independientes (`main.py`)**:
+  * Se sustituyó el botón genérico por dos accesos principales: **"🔬 Individual"** y **"⚖️ Comparación"**.
+  * Ambas vistas comparten el layout simétrico: Columna izquierda con selector de pruebas, condiciones ambientales, comentarios y botón de previsualización; Columna derecha con los controles dinámicos de archivo según el módulo.
+* **Simplificación de Pruebas Individuales (`modules/acceleration.py`, `braking.py`, `top_speed.py`)**:
+  * En modo **Individual**, los módulos de Aceleración, Frenado y Velocidad Máxima presentan únicamente **1 fila de archivo CSV**, optimizando el flujo para la evaluación a fondo de una sola moto.
+  * El módulo de **Ascenso** (`climbing.py`) mantiene sus 2 filas fijas (*Solo Piloto* y *Con Pasajero*).
+* **Módulo de Comparación Multi-Archivo (`modules/`)**:
+  * En modo **Comparación**, los módulos habilitan hasta 3 archivos para comparar pasadas superpuestas en las gráficas de previsualización.
+  * En Ascenso, se presenta una pantalla informativa de *"Módulo en construcción / Próximamente"*.
+* **Detección Inteligente de Nombres y Leyendas**:
+  * El sistema identifica automáticamente qué variable cambia entre los archivos analizados para rotular las leyendas de las gráficas y la columna *C (Evento)* de las tablas resumen:
+    1. Si cambian las motocicletas $\rightarrow$ Se rotula con el **Código de Modelo** (`Código Modelo` / `Codigo`).
+    2. Si las motos son iguales pero cambian los pilotos $\rightarrow$ Se rotula con el **Nombre del Piloto**.
+    3. Si motos y pilotos son iguales pero cambian los lugares $\rightarrow$ Se rotula con el **Nombre del Lugar**.
+    4. Si todo es idéntico $\rightarrow$ Se rotula como `Pasada 1`, `Pasada 2`, etc.
+* **Integridad Total del Formato Excel (`excel_reporter.py`)**:
+  * Las plantillas y coordenadas de celdas no sufren ninguna alteración, garantizando compatibilidad 100% con los formatos oficiales estándar.
+
+---
 
 ### v1.0.10 — Inserción de Foto de Pasajero en Reportes Excel (2026-08-19)
 

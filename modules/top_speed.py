@@ -98,10 +98,10 @@ class TopSpeedModule(BaseModule):
         self.files_frame = ctk.CTkFrame(self)
         self.files_frame.pack(fill="x", padx=10, pady=5)
 
-        # Filas de archivos
-        self._create_file_row(self.files_frame, 1)
-        self._create_file_row(self.files_frame, 2)
-        self._create_file_row(self.files_frame, 3)
+        self.file_numbers = [1] if getattr(self, 'mode', 'individual') == 'individual' else [1, 2, 3]
+
+        for num in self.file_numbers:
+            self._create_file_row(self.files_frame, num)
 
         # Campo de velocímetro del tablero
         dash_frame = ctk.CTkFrame(self)
@@ -120,7 +120,8 @@ class TopSpeedModule(BaseModule):
         row = ctk.CTkFrame(parent)
         row.pack(fill="x", padx=5, pady=5)
 
-        ctk.CTkLabel(row, text=f"Archivo {num}:", font=("Arial", 12, "bold")).pack(side="left", padx=5)
+        label_text = f"Archivo {num}:" if len(self.file_numbers) > 1 else "Archivo CSV:"
+        ctk.CTkLabel(row, text=label_text, font=("Arial", 12, "bold")).pack(side="left", padx=5)
 
         moto_combo = ctk.CTkComboBox(row, values=["Seleccione Moto..."], width=150)
         moto_combo.pack(side="left", padx=5)
@@ -164,7 +165,7 @@ class TopSpeedModule(BaseModule):
         if not lugar_names:
             lugar_names = ["Sin lugares registrados"]
 
-        for num in [1, 2, 3]:
+        for num in getattr(self, 'file_numbers', [1]):
             getattr(self, f'moto_combo_{num}').configure(values=moto_names)
             getattr(self, f'pilot_combo_{num}').configure(values=pilot_names)
             getattr(self, f'lugar_combo_{num}').configure(values=lugar_names)
@@ -176,7 +177,7 @@ class TopSpeedModule(BaseModule):
         motos_data = self.data_handler.load_motos()
         lugares_data = self.data_handler.load_lugares()
 
-        for num in [1, 2, 3]:
+        for num in getattr(self, 'file_numbers', [1]):
             path = getattr(self, f'path_entry_{num}').get()
             pilot = getattr(self, f'pilot_combo_{num}').get()
             moto_str = getattr(self, f'moto_combo_{num}').get()
@@ -386,8 +387,11 @@ class TopSpeedModule(BaseModule):
         """Procesa 2 o 3 archivos para comparación."""
         motos = [inp.get('moto_data', {}) for inp in inputs]
         lugares = [inp.get('lugar_data', {}) for inp in inputs]
+        pilots = [inp.get('pilot', '') for inp in inputs]
 
         motos_same = all(m == motos[0] for m in motos)
+        lugares_same = all(l == lugares[0] for l in lugares)
+        pilots_same = all(p == pilots[0] for p in pilots)
 
         parsed_data = []
         for i, inp in enumerate(inputs):
@@ -411,13 +415,15 @@ class TopSpeedModule(BaseModule):
             if valid_events:
                 valid_events.sort(key=lambda x: x['metrics']['max_speed'], reverse=True)
 
-            if motos_same:
-                d_name = lugares[i].get('Nombre', f"Event {i+1}")
-            else:
+            if not motos_same:
                 m_d = motos[i]
-                d_name = f"{m_d.get('Nombre Comercial', '')} {m_d.get('Codigo', '')}".strip()
-                if not d_name:
-                    d_name = f"Event {i+1}"
+                d_name = m_d.get('Código Modelo') or m_d.get('Codigo') or m_d.get('Nombre Comercial', f"Moto {i+1}")
+            elif not pilots_same:
+                d_name = pilots[i]
+            elif not lugares_same:
+                d_name = lugares[i].get('Nombre', f"Lugar {i+1}")
+            else:
+                d_name = f"Pasada {i+1}"
 
             parsed_data.append({
                 'df': df,
