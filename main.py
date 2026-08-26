@@ -2,7 +2,7 @@
 Programa Análisis de Datos - INCOL
 Punto de entrada principal.
 
-Versión 1.1.0
+Versión 1.1.1
 """
 import sys
 import os
@@ -185,17 +185,6 @@ class App(ctk.CTk):
         """Carga el módulo de prueba correspondiente."""
         for w in self.module_frame.winfo_children():
             w.destroy()
-
-        if mode == "comparison" and module_key == "climb":
-            placeholder = ctk.CTkFrame(self.module_frame, fg_color="transparent")
-            placeholder.pack(expand=True)
-            ctk.CTkLabel(placeholder, text="🚧 Módulo en Construcción",
-                         font=("Arial", 20, "bold")).pack(pady=10)
-            ctk.CTkLabel(placeholder,
-                         text="La comparación de pruebas de ascenso estará disponible\nen una próxima actualización.\n\nPuede utilizar la sección 'Individual' para analizar pruebas de ascenso.",
-                         font=("Arial", 13), text_color="gray", justify="center").pack(pady=10)
-            self.current_module = None
-            return
 
         modules = {
             "accel": AccelerationModule,

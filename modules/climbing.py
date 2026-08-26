@@ -111,49 +111,67 @@ CLIMB_LABELS = {
 
 class ClimbingModule(BaseModule):
     def build_ui(self):
-        ctk.CTkLabel(self, text="Prueba de Ascenso",
-                     font=("Arial", 16, "bold")).pack(pady=10)
+        title_txt = "Prueba de Ascenso - Individual" if getattr(self, 'mode', 'individual') == 'individual' else "Prueba de Ascenso - Comparación"
+        ctk.CTkLabel(self, text=title_txt, font=("Arial", 16, "bold")).pack(pady=10)
 
         self.files_frame = ctk.CTkFrame(self)
         self.files_frame.pack(fill="x", padx=10, pady=5)
 
-        # Lugar general (compartido para ambos archivos)
+        # Lugar general (compartido para todos los archivos)
         lugar_row = ctk.CTkFrame(self.files_frame)
         lugar_row.pack(fill="x", padx=5, pady=5)
         ctk.CTkLabel(lugar_row, text="Lugar:", font=("Arial", 12, "bold")).pack(side="left", padx=5)
         self.lugar_combo = ctk.CTkComboBox(lugar_row, values=["Seleccione Lugar..."], width=200)
         self.lugar_combo.pack(side="left", padx=5)
 
-        # Fila 1: Solo piloto
-        self._create_file_row(self.files_frame, 1, "Archivo 1 (Solo Piloto):", has_passenger=False)
-        # Fila 2: Piloto + pasajero
-        self._create_file_row(self.files_frame, 2, "Archivo 2 (Con Pasajero):", has_passenger=True)
+        if getattr(self, 'mode', 'individual') == 'individual':
+            # Fila 1: Solo piloto
+            self._create_file_row(self.files_frame, 1, "Archivo 1 (Solo Piloto):", has_passenger=False)
+            # Fila 2: Piloto + pasajero
+            self._create_file_row(self.files_frame, 2, "Archivo 2 (Con Pasajero):", has_passenger=True)
+        else:
+            # Sección Solo Piloto
+            self._create_section_label("🏍 Solo Piloto:")
+            self._create_file_row(self.files_frame, "pilot_1", "Archivo 1:", has_passenger=False)
+            self._create_file_row(self.files_frame, "pilot_2", "Archivo 2:", has_passenger=False)
+            self._create_file_row(self.files_frame, "pilot_3", "Archivo 3:", has_passenger=False)
+
+            # Sección Con Pasajero
+            self._create_section_label("👥 Con Pasajero:")
+            self._create_file_row(self.files_frame, "pax_1", "Archivo 1:", has_passenger=True)
+            self._create_file_row(self.files_frame, "pax_2", "Archivo 2:", has_passenger=True)
+            self._create_file_row(self.files_frame, "pax_3", "Archivo 3:", has_passenger=True)
 
         self.refresh_combos()
 
-    def _create_file_row(self, parent, num, label, has_passenger=False):
-        row = ctk.CTkFrame(parent)
-        row.pack(fill="x", padx=5, pady=5)
+    def _create_section_label(self, text):
+        lbl_frame = ctk.CTkFrame(self.files_frame, fg_color="transparent")
+        lbl_frame.pack(fill="x", padx=5, pady=(8, 2))
+        ctk.CTkLabel(lbl_frame, text=text, font=("Arial", 13, "bold"), text_color="#2196F3").pack(side="left", padx=5)
 
-        ctk.CTkLabel(row, text=label, font=("Arial", 12, "bold")).pack(side="left", padx=5)
+    def _create_file_row(self, parent, key, label, has_passenger=False):
+        row = ctk.CTkFrame(parent)
+        row.pack(fill="x", padx=5, pady=4)
+
+        ctk.CTkLabel(row, text=label, font=("Arial", 11, "bold")).pack(side="left", padx=5)
 
         # Moto combo
-        moto_combo = ctk.CTkComboBox(row, values=["Seleccione Moto..."], width=150)
-        moto_combo.pack(side="left", padx=5)
+        moto_combo = ctk.CTkComboBox(row, values=["Seleccione Moto..."], width=140)
+        moto_combo.pack(side="left", padx=4)
 
         # Piloto combo
-        pilot_combo = ctk.CTkComboBox(row, values=["Seleccione Piloto..."], width=130)
-        pilot_combo.pack(side="left", padx=5)
+        pilot_combo = ctk.CTkComboBox(row, values=["Seleccione Piloto..."], width=120)
+        pilot_combo.pack(side="left", padx=4)
 
-        # Pasajero combo (solo para fila 2)
+        # Pasajero combo (solo para filas con pasajero)
         if has_passenger:
-            pax_combo = ctk.CTkComboBox(row, values=["Seleccione Pasajero..."], width=130)
-            pax_combo.pack(side="left", padx=5)
-            setattr(self, f'pax_combo_{num}', pax_combo)
+            pax_combo = ctk.CTkComboBox(row, values=["Seleccione Pasajero..."], width=120)
+            pax_combo.pack(side="left", padx=4)
+            setattr(self, f'pax_combo_{key}', pax_combo)
 
         # Ruta del archivo
-        path_entry = ctk.CTkEntry(row, width=150, placeholder_text="Ruta del archivo CSV...")
-        path_entry.pack(side="left", padx=5, fill="x", expand=True)
+        path_entry = ctk.CTkEntry(row, width=140, placeholder_text="Ruta del archivo CSV...")
+        path_entry.pack(side="left", padx=4, fill="x", expand=True)
 
         def browse():
             f = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv"), ("Text Files", "*.txt")])
@@ -161,11 +179,11 @@ class ClimbingModule(BaseModule):
                 path_entry.delete(0, "end")
                 path_entry.insert(0, f)
 
-        ctk.CTkButton(row, text="Buscar", width=60, command=browse).pack(side="left", padx=5)
+        ctk.CTkButton(row, text="Buscar", width=55, command=browse).pack(side="left", padx=4)
 
-        setattr(self, f'moto_combo_{num}', moto_combo)
-        setattr(self, f'pilot_combo_{num}', pilot_combo)
-        setattr(self, f'path_entry_{num}', path_entry)
+        setattr(self, f'moto_combo_{key}', moto_combo)
+        setattr(self, f'pilot_combo_{key}', pilot_combo)
+        setattr(self, f'path_entry_{key}', path_entry)
 
     def refresh_combos(self):
         """Actualiza las listas de motos, pilotos y lugares."""
@@ -186,16 +204,21 @@ class ClimbingModule(BaseModule):
 
         self.lugar_combo.configure(values=lugar_names)
 
-        for num in [1, 2]:
-            getattr(self, f'moto_combo_{num}').configure(values=moto_names)
-            getattr(self, f'pilot_combo_{num}').configure(values=pilot_names)
+        if getattr(self, 'mode', 'individual') == 'individual':
+            keys = [1, 2]
+        else:
+            keys = ['pilot_1', 'pilot_2', 'pilot_3', 'pax_1', 'pax_2', 'pax_3']
 
-        # Pasajero en fila 2
-        if hasattr(self, 'pax_combo_2'):
-            self.pax_combo_2.configure(values=pilot_names)
+        for key in keys:
+            if hasattr(self, f'moto_combo_{key}'):
+                getattr(self, f'moto_combo_{key}').configure(values=moto_names)
+            if hasattr(self, f'pilot_combo_{key}'):
+                getattr(self, f'pilot_combo_{key}').configure(values=pilot_names)
+            if hasattr(self, f'pax_combo_{key}'):
+                getattr(self, f'pax_combo_{key}').configure(values=pilot_names)
 
     def get_data(self):
-        """Retorna lista de inputs válidos (hasta 2 archivos)."""
+        """Retorna lista de inputs válidos."""
         inputs = []
         pilotos_data = self.data_handler.load_pilotos()
         motos_data = self.data_handler.load_motos()
@@ -210,10 +233,28 @@ class ClimbingModule(BaseModule):
         else:
             lugar_data = {'Nombre': lugar_str}
 
-        for num in [1, 2]:
-            path = getattr(self, f'path_entry_{num}').get()
-            pilot = getattr(self, f'pilot_combo_{num}').get()
-            moto_str = getattr(self, f'moto_combo_{num}').get()
+        if getattr(self, 'mode', 'individual') == 'individual':
+            configs = [
+                (1, False, 'Rider Only', 1, 'pilot'),
+                (2, True, 'Rider + Passenger', 2, 'pax')
+            ]
+        else:
+            configs = [
+                ('pilot_1', False, 'Rider Only', 1, 'pilot'),
+                ('pilot_2', False, 'Rider Only', 1, 'pilot'),
+                ('pilot_3', False, 'Rider Only', 1, 'pilot'),
+                ('pax_1', True, 'Rider + Passenger', 2, 'pax'),
+                ('pax_2', True, 'Rider + Passenger', 2, 'pax'),
+                ('pax_3', True, 'Rider + Passenger', 2, 'pax'),
+            ]
+
+        for key, has_pax, cond_label, file_num, group in configs:
+            if not hasattr(self, f'path_entry_{key}'):
+                continue
+
+            path = getattr(self, f'path_entry_{key}').get()
+            pilot = getattr(self, f'pilot_combo_{key}').get()
+            moto_str = getattr(self, f'moto_combo_{key}').get()
 
             if not path or not os.path.exists(path):
                 continue
@@ -235,12 +276,11 @@ class ClimbingModule(BaseModule):
                     moto_data = m
                     break
 
-            # Pasajero (solo fila 2)
             passenger = None
             pax_weight = 0
             pax_altura = 0
-            if num == 2 and hasattr(self, 'pax_combo_2'):
-                pax_name = self.pax_combo_2.get()
+            if has_pax and hasattr(self, f'pax_combo_{key}'):
+                pax_name = getattr(self, f'pax_combo_{key}').get()
                 if pax_name not in ["Seleccione Pasajero...", "Sin pilotos"]:
                     passenger = pax_name
                     for p in pilotos_data:
@@ -259,8 +299,10 @@ class ClimbingModule(BaseModule):
                 'passenger': passenger,
                 'pax_weight': str(pax_weight),
                 'pax_altura': str(pax_altura),
-                'condition': CLIMB_LABELS.get(num, f"Condition {num}"),
-                'file_num': num
+                'condition': cond_label,
+                'file_num': file_num,
+                'group': group,
+                'key': key
             })
 
         return inputs
@@ -274,14 +316,17 @@ class ClimbingModule(BaseModule):
             return False, "Sin entradas válidas"
 
         try:
-            return self._process_climbing(valid_inputs, moto_data, env_conditions, comments)
+            if getattr(self, 'mode', 'individual') == 'individual':
+                return self._process_individual(valid_inputs, moto_data, env_conditions, comments)
+            else:
+                return self._process_comparison(valid_inputs, moto_data, env_conditions, comments)
         except Exception as e:
             import traceback
             traceback.print_exc()
             return False, f"Error en análisis: {str(e)}"
 
-    def _process_climbing(self, inputs, moto_data, env_conditions, comments):
-        """Procesa 1 o 2 archivos de ascenso (cada uno independiente)."""
+    def _process_individual(self, inputs, moto_data, env_conditions, comments):
+        """Procesa 1 o 2 archivos de ascenso para el modo individual."""
         climbing_results = {}
         slope_data = None
 
@@ -301,23 +346,17 @@ class ClimbingModule(BaseModule):
                 s_idx = evt_df.attrs.get('start_idx', evt_df.index[0])
                 e_idx = evt_df.attrs.get('end_idx', evt_df.index[-1])
 
-                # Refinar inicio
                 s_idx_refined = refine_acceleration_start(evt_df)
-
-                # Evitar duplicados del mismo despegue físico
                 if s_idx_refined in seen_starts:
                     continue
                 seen_starts.add(s_idx_refined)
 
-                # Recortar el DataFrame del evento para que el buffer previo sea de exactamente 20 muestras (2.0s)
-                # respecto al despegue real (s_idx_refined), eliminando tiempos muertos prolongados en reposo.
                 ref_loc = evt_df.index.get_loc(s_idx_refined)
                 new_slice_start = max(0, ref_loc - 20)
                 trimmed_df = evt_df.iloc[new_slice_start:].copy()
                 trimmed_df.attrs = evt_df.attrs.copy()
                 trimmed_df.attrs['start_idx'] = s_idx_refined
 
-                # Validar continuidad de aceleración (descartar intentos con caídas >= MAX_SPEED_DROP_KMH)
                 phase_v = trimmed_df.loc[s_idx_refined:e_idx, 'Velocidad_GPS']
                 peak_v = 0.0
                 has_excessive_drop = False
@@ -338,7 +377,6 @@ class ClimbingModule(BaseModule):
                         'condition': condition
                     })
 
-                    # Calcular pendiente (del primer evento válido)
                     if slope_data is None:
                         slope_data = calculate_slope(trimmed_df, s_idx_refined, e_idx)
 
@@ -355,7 +393,6 @@ class ClimbingModule(BaseModule):
         if not climbing_results:
             return False, "No se encontraron eventos válidos de ascenso."
 
-        # --- CONSTRUIR DATOS DE PREVIEW ---
         first_df = list(climbing_results.values())[0]['df']
         contexto_gps = get_gps_context(first_df)
 
@@ -370,8 +407,7 @@ class ClimbingModule(BaseModule):
 
         context_map = None
         first_best = list(climbing_results.values())[0]['best']
-        context_map_buf = plot_gps_route_simple(first_best['df'], distance_m=max_dist,
-                                                 slope_data=slope_data)
+        context_map_buf = plot_gps_route_simple(first_best['df'], distance_m=max_dist, slope_data=slope_data)
         if context_map_buf:
             context_map = context_map_buf.getvalue()
 
@@ -461,6 +497,222 @@ class ClimbingModule(BaseModule):
                 messagebox.showerror("Excel Exception", str(e))
 
         PreviewWindow(self, "Previsualización - Ascenso",
+                      sections, on_excel_callback=on_excel,
+                      contexto_gps=contexto_gps, context_map=context_map,
+                      preview_data=preview_data)
+        return True, "Previsualización abierta"
+
+    def _process_comparison(self, inputs, moto_data, env_conditions, comments):
+        """Procesa múltiples archivos de ascenso en modo Comparación."""
+        pilot_inputs = [inp for inp in inputs if inp.get('group') == 'pilot']
+        pax_inputs = [inp for inp in inputs if inp.get('group') == 'pax']
+
+        def analyze_subset(subset, cond_title):
+            if not subset:
+                return [], None
+
+            motos = [inp.get('moto_data', {}) for inp in subset]
+            pilots = [inp.get('pilot', '') for inp in subset]
+            motos_same = all(m == motos[0] for m in motos)
+            pilots_same = all(p == pilots[0] for p in pilots)
+
+            best_events = []
+            first_valid_df = None
+
+            for i, inp in enumerate(subset):
+                df = parse_csv(inp['filepath'])
+                if df.empty:
+                    continue
+                df = convert_units(df)
+
+                if first_valid_df is None:
+                    first_valid_df = df
+
+                raw_events = extract_climbing_events(df, target_distance=70)
+                valid_events = []
+                seen_starts = set()
+                for evt_df in raw_events:
+                    s_idx_refined = refine_acceleration_start(evt_df)
+                    if s_idx_refined in seen_starts:
+                        continue
+                    seen_starts.add(s_idx_refined)
+
+                    ref_loc = evt_df.index.get_loc(s_idx_refined)
+                    new_slice_start = max(0, ref_loc - 20)
+                    trimmed_df = evt_df.iloc[new_slice_start:].copy()
+                    trimmed_df.attrs = evt_df.attrs.copy()
+                    trimmed_df.attrs['start_idx'] = s_idx_refined
+
+                    phase_v = trimmed_df.loc[s_idx_refined:evt_df.attrs.get('end_idx', evt_df.index[-1]), 'Velocidad_GPS']
+                    peak_v = 0.0
+                    has_excessive_drop = False
+                    for v in phase_v:
+                        if v > peak_v:
+                            peak_v = v
+                        if peak_v >= 8.0 and (peak_v - v) >= MAX_SPEED_DROP_KMH:
+                            has_excessive_drop = True
+                            break
+                    if has_excessive_drop:
+                        continue
+
+                    m = calculate_climbing_metrics(trimmed_df, s_idx_refined, evt_df.attrs.get('end_idx', evt_df.index[-1]))
+                    if m:
+                        valid_events.append({
+                            'df': trimmed_df, 'metrics': m, 'pilot': inp['pilot'],
+                            'weight': inp['weight'], 'id': len(valid_events) + 1,
+                            'condition': cond_title
+                        })
+
+                if valid_events:
+                    valid_events.sort(key=lambda x: x['metrics']['time_s'])
+                    best_ev = valid_events[0].copy()
+
+                    if not motos_same:
+                        m = motos[i]
+                        d_name = m.get('Código Modelo') or m.get('Codigo') or m.get('Nombre Comercial', f"Moto {i+1}")
+                    elif not pilots_same:
+                        d_name = pilots[i]
+                    else:
+                        d_name = f"Pasada {i+1}"
+
+                    best_ev['display_name'] = d_name
+                    best_ev['id'] = i + 1
+                    best_events.append(best_ev)
+
+            return best_events, first_valid_df
+
+        best_pilot_all, df_pilot = analyze_subset(pilot_inputs, "Rider Only")
+        best_pax_all, df_pax = analyze_subset(pax_inputs, "Rider + Passenger")
+
+        if not best_pilot_all and not best_pax_all:
+            return False, "No se encontraron eventos válidos de ascenso en los archivos cargados."
+
+        primary_df = df_pilot if df_pilot is not None else df_pax
+        contexto_gps = get_gps_context(primary_df) if primary_df is not None else {}
+
+        # Pendiente del primer evento
+        slope_data = None
+        if best_pilot_all:
+            ev = best_pilot_all[0]
+            slope_data = calculate_slope(ev['df'], ev['metrics']['start_idx'], ev['metrics']['end_idx'])
+        elif best_pax_all:
+            ev = best_pax_all[0]
+            slope_data = calculate_slope(ev['df'], ev['metrics']['start_idx'], ev['metrics']['end_idx'])
+
+        # Distancia máxima
+        max_dist = 0.0
+        for ev in (best_pilot_all + best_pax_all):
+            m = ev.get('metrics')
+            if m and m.get('dist_m', 0) > max_dist:
+                max_dist = m['dist_m']
+        if max_dist <= 0:
+            max_dist = contexto_gps.get('distancia_m', 0.0)
+
+        context_map = None
+        if primary_df is not None and max_dist > 0:
+            context_map_buf = plot_gps_route_simple(primary_df, distance_m=max_dist, slope_data=slope_data)
+            if context_map_buf:
+                context_map = context_map_buf.getvalue()
+
+        sections = []
+        primary_moto = inputs[0].get('moto_data', {}) if inputs else moto_data
+
+        preview_data = {
+            "type": "climbing",
+            "moto_info": primary_moto,
+            "inputs": inputs,
+            "comments": comments,
+            "env_conditions": env_conditions,
+            "sections": sections,
+            "contexto_gps": contexto_gps,
+            "context_map": context_map,
+            "climbing_data": {},
+            "slope_data": slope_data,
+            "excel_cells": EXCEL_CELLS,
+            "excel_img_sizes": EXCEL_IMG_SIZES,
+        }
+
+        # ── Sección Solo Piloto ──
+        if best_pilot_all:
+            img_combined_pilot = plot_speed_comparison(best_pilot_all, "Climbing Rider Only - Comparison")
+
+            table_pilot = [["Event", "V. Start (km/h)", "V. Final (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM", "Slope (%)"]]
+            for ev in best_pilot_all:
+                m = ev['metrics']
+                s_info = calculate_slope(ev['df'], m.get('start_idx', ev['df'].index[0]), m.get('end_idx', ev['df'].index[-1]))
+                slope_str = f"{s_info.get('slope_pct', 0):.1f}% ({s_info.get('angle_deg', 0):.1f}°)" if s_info else "N/A"
+                table_pilot.append([
+                    ev.get('display_name', f"Event {ev.get('id', '')}"),
+                    f"{m['v_start']:.2f}",
+                    f"{m['v_final']:.2f}",
+                    f"{m['time_s']:.2f}",
+                    f"{m['dist_m']:.2f}",
+                    f"{m['avg_acc']:.2f}",
+                    f"{int(m['top_rpm'])}",
+                    slope_str
+                ])
+
+            sections.append({
+                "title": "Climbing Rider Only - Comparison",
+                "images": [{'bytes': img_combined_pilot.getvalue()}],
+                "table_data": table_pilot
+            })
+
+            preview_data["climbing_data"][1] = {
+                "top_3_events": best_pilot_all,
+                "best_event": None,
+                "condition": "Rider Only",
+                "img_combined": img_combined_pilot.getvalue(),
+            }
+
+        # ── Sección Con Pasajero ──
+        if best_pax_all:
+            img_combined_pax = plot_speed_comparison(best_pax_all, "Climbing Rider + Passenger - Comparison")
+
+            table_pax = [["Event", "V. Start (km/h)", "V. Final (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM", "Slope (%)"]]
+            for ev in best_pax_all:
+                m = ev['metrics']
+                s_info = calculate_slope(ev['df'], m.get('start_idx', ev['df'].index[0]), m.get('end_idx', ev['df'].index[-1]))
+                slope_str = f"{s_info.get('slope_pct', 0):.1f}% ({s_info.get('angle_deg', 0):.1f}°)" if s_info else "N/A"
+                table_pax.append([
+                    ev.get('display_name', f"Event {ev.get('id', '')}"),
+                    f"{m['v_start']:.2f}",
+                    f"{m['v_final']:.2f}",
+                    f"{m['time_s']:.2f}",
+                    f"{m['dist_m']:.2f}",
+                    f"{m['avg_acc']:.2f}",
+                    f"{int(m['top_rpm'])}",
+                    slope_str
+                ])
+
+            sections.append({
+                "title": "Climbing Rider + Passenger - Comparison",
+                "images": [{'bytes': img_combined_pax.getvalue()}],
+                "table_data": table_pax
+            })
+
+            preview_data["climbing_data"][2] = {
+                "top_3_events": best_pax_all,
+                "best_event": None,
+                "condition": "Rider + Passenger",
+                "img_combined": img_combined_pax.getvalue(),
+            }
+
+        from ui.preview_window import PreviewWindow
+
+        def on_excel(p_data):
+            from reports.excel_reporter import ExcelReporter
+            try:
+                r = ExcelReporter()
+                ok, path = r.generate_climbing(p_data)
+                if ok:
+                    messagebox.showinfo("Excel Guardado", f"Generado en:\n{path}")
+                else:
+                    messagebox.showerror("Excel Error", f"Error:\n{path}")
+            except Exception as e:
+                messagebox.showerror("Excel Exception", str(e))
+
+        PreviewWindow(self, "Previsualización Comparativa - Ascenso",
                       sections, on_excel_callback=on_excel,
                       contexto_gps=contexto_gps, context_map=context_map,
                       preview_data=preview_data)

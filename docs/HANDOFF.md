@@ -11,7 +11,7 @@
 | --------------------------- | --------------------------------- |
 | **Proyecto**          | Programa Análisis — INCOL       |
 | **Ruta**              | `Programa Analisis/`            |
-| **Versión actual**   | 1.1.0                             |
+| **Versión actual**   | 1.1.1                             |
 | **Programa anterior** | `Programa Resultados/` (v2.9.1) |
 | **Lenguaje**          | Python 3                          |
 | **Framework UI**      | CustomTkinter                     |
@@ -19,6 +19,24 @@
 ---
 
 ## Registro de Cambios
+
+### v1.1.1 — Ascenso en Modo Comparación y Enfoque 100% Comparativo (2026-08-26)
+
+**Objetivo:** Habilitar el soporte completo de análisis comparativo multi-archivo en el módulo de Ascenso (hasta 3 archivos para Solo Piloto y hasta 3 archivos para Con Pasajero), refinar la interfaz y enfocar todas las previsualizaciones de modo Comparación exclusivamente en gráficas combinadas y tablas consolidadas, eliminando gráficas de detalle individual secundarias.
+
+* **Habilitación de Ascenso en Modo Comparación (`modules/climbing.py`, `main.py`)**:
+  * Se removió el placeholder de "Módulo en construcción" y se integró la carga dinámica de `ClimbingModule` en modo comparación.
+  * Soporte de hasta **3 archivos para Solo Piloto** y hasta **3 archivos para Con Pasajero**, con selector de pasajero independiente para cada fila de la prueba con pasajero.
+  * Etiquetas de archivos limpias y simplificadas (`Archivo 1:`, `Archivo 2:`, `Archivo 3:`).
+* **Enfoque Exclusivo en Comparación (`modules/acceleration.py`, `braking.py`, `top_speed.py`, `climbing.py`)**:
+  * Se eliminaron las gráficas de detalle individual secundarias (velocidad, aceleración, RPM y mapas térmicos) que se generaban únicamente para el Archivo 1, evitando sesgos y acelerando el renderizado de la previsualización.
+  * Las vistas de comparación presentan exclusivamente las curvas superpuestas (`img_combined`) y las tablas de resultados consolidados de todas las pasadas analizadas.
+* **Corrección de Claves de Inclinación en Ascenso (`modules/climbing.py`)**:
+  * Corrección de `KeyError: 'slope_deg'` accediendo defensivamente a `angle_deg` y `slope_pct` del retorno de `calculate_slope`.
+* **Detección Inteligente de Nombres**:
+  * Aplicación consistente de la jerarquía de rotulado (`Código Modelo` $\rightarrow$ `Piloto` $\rightarrow$ `Lugar` $\rightarrow$ `Pasada N`) en todos los módulos de comparación.
+
+---
 
 ### v1.1.0 — Separación de Modos (Individual / Comparación) y Detección Inteligente (2026-08-24)
 
@@ -31,9 +49,9 @@
   * En modo **Individual**, los módulos de Aceleración, Frenado y Velocidad Máxima presentan únicamente **1 fila de archivo CSV**, optimizando el flujo para la evaluación a fondo de una sola moto.
   * El módulo de **Ascenso** (`climbing.py`) mantiene sus 2 filas fijas (*Solo Piloto* y *Con Pasajero*).
 * **Módulo de Comparación Multi-Archivo (`modules/`)**:
-  * En modo **Comparación**, los módulos habilitan hasta 3 archivos para comparar pasadas superpuestas en las gráficas de previsualización.
+  * En modo **Comparación**, los módulos de Aceleración, Frenado y Velocidad Máxima habilitan hasta 3 archivos para comparar pasadas superpuestas.
+  * **Módulo de Ascenso en Comparación (`climbing.py`)**: Habilita hasta 3 archivos para **Solo Piloto** y hasta 3 archivos para **Con Pasajero** (con selector de pasajero independiente), con gráficas combinadas y tablas comparativas de pendiente/desempeño para ambas condiciones.
   * **Enfoque Exclusivo en Comparación:** Se eliminaron las gráficas de detalle individual sesgadas al Archivo 1, presentando únicamente las curvas comparativas superpuestas (`img_combined`) y las tablas de resultados consolidados de todas las motos/archivos analizados.
-  * En Ascenso, se presenta una pantalla informativa de *"Módulo en construcción / Próximamente"*.
 * **Detección Inteligente de Nombres y Leyendas**:
   * El sistema identifica automáticamente qué variable cambia entre los archivos analizados para rotular las leyendas de las gráficas y la columna *C (Evento)* de las tablas resumen:
     1. Si cambian las motocicletas $\rightarrow$ Se rotula con el **Código de Modelo** (`Código Modelo` / `Codigo`).
