@@ -473,47 +473,23 @@ class TopSpeedModule(BaseModule):
                 best_all.append(best_ev)
 
         if best_all:
-            img_combined = plot_speed_comparison(best_all, "Top Speed - General Result")
+            img_combined = plot_speed_comparison(best_all, "Top Speed - Comparison")
+
+            table_ts = [["Event", "Max Speed GPS (km/h)", "Avg Acc (m/s²)", "Top RPM"]]
+            for ev in best_all:
+                m = ev['metrics']
+                table_ts.append([
+                    ev.get('display_name', f"Event {ev.get('id', '')}"),
+                    f"{m['max_speed']:.2f}",
+                    f"{m['avg_acc']:.2f}",
+                    f"{int(m['top_rpm'])}"
+                ])
 
             sections.append({
                 "title": "Top Speed - Comparison",
                 "images": [{'bytes': img_combined.getvalue()}],
-                "table_data": None
+                "table_data": table_ts
             })
-
-            # Detalle del archivo primario
-            if primary['valid_events']:
-                best = primary['valid_events'][0]
-
-                if dashboard_speed_str:
-                    try:
-                        dashboard_speed = float(dashboard_speed_str)
-                        speed_diff = calculate_speed_difference(best['metrics']['max_speed'], dashboard_speed)
-                    except ValueError:
-                        pass
-
-                img_detail_v = plot_speed_detailed(best, "Speed vs Time")
-                img_detail_a = plot_accel_vs_time(best, "Acceleration vs Time")
-                img_detail_rpm = plot_rpm_vs_time(best, "RPM vs Time") if 'RPM' in primary['df'].columns else None
-                img_detail_gps = plot_gps_heatmap(best, "Ubicación de la prueba")
-
-                m = best['metrics']
-                tab_b = [["Max Speed GPS (km/h)", "Avg Acc (m/s²)", "Top RPM"],
-                         [f"{m['max_speed']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"]]
-
-                imgs = []
-                if img_detail_gps:
-                    imgs.append({'bytes': img_detail_gps.getvalue()})
-                imgs.append({'bytes': img_detail_v.getvalue()})
-                if img_detail_rpm:
-                    imgs.append({'bytes': img_detail_rpm.getvalue()})
-                imgs.append({'bytes': img_detail_a.getvalue()})
-
-                sections.append({
-                    "title": "Top Speed - Best Event",
-                    "images": imgs,
-                    "table_data": tab_b
-                })
 
         preview_data = {
             "type": "topspeed",
@@ -525,14 +501,14 @@ class TopSpeedModule(BaseModule):
             "context_map": context_map,
             "topspeed_data": {
                 "top_3_events": best_all,
-                "best_event": primary['valid_events'][0] if primary['valid_events'] else None,
+                "best_event": None,
                 "dashboard_speed": dashboard_speed,
                 "speed_diff": speed_diff,
                 "img_combined": img_combined.getvalue() if best_all else None,
-                "img_detail_v": img_detail_v.getvalue() if primary['valid_events'] else None,
-                "img_detail_a": img_detail_a.getvalue() if primary['valid_events'] else None,
-                "img_detail_rpm": img_detail_rpm.getvalue() if primary['valid_events'] and img_detail_rpm else None,
-                "img_detail_gps": img_detail_gps.getvalue() if primary['valid_events'] and img_detail_gps else None,
+                "img_detail_v": None,
+                "img_detail_a": None,
+                "img_detail_rpm": None,
+                "img_detail_gps": None,
             },
             "excel_cells": EXCEL_CELLS,
             "excel_img_sizes": EXCEL_IMG_SIZES,

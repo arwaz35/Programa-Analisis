@@ -724,68 +724,56 @@ class AccelerationModule(BaseModule):
 
         # --- Secciones Aceleración ---
         if best_accels_all:
-            img_combined = plot_speed_comparison(best_accels_all, f"Acceleration 0-{int(target_speed)} - General Result")
+            img_combined = plot_speed_comparison(best_accels_all, f"Acceleration 0-{int(target_speed)} - Comparison")
             
+            table_acc = [["Event", "V. Start (km/h)", "V. Final (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
+            for ev in best_accels_all:
+                m = ev['metrics']
+                table_acc.append([
+                    ev.get('display_name', f"Event {ev.get('id', '')}"),
+                    f"{m['v_start']:.2f}",
+                    f"{m['v_final']:.2f}",
+                    f"{m['time_s']:.2f}",
+                    f"{m['dist_m']:.2f}",
+                    f"{m['avg_acc']:.2f}",
+                    f"{int(m['top_rpm'])}"
+                ])
+
             sections.append({
-                "title": f"Acceleration 0-{int(target_speed)} km/h - Summary",
+                "title": f"Acceleration 0-{int(target_speed)} km/h - Comparison",
                 "images": [{'bytes': img_combined.getvalue()}],
-                "table_data": None
+                "table_data": table_acc
             })
 
-            # Detalle (solo arch 1)
-            if primary['valid_accel']:
-                best_accel_1 = primary['valid_accel'][0]
-                img_detail_v = plot_speed_detailed(best_accel_1, "Speed vs Time", benchmarks=accel_benchmarks)
-                img_detail_a = plot_accel_vs_time(best_accel_1, "Acceleration vs Time", benchmarks=accel_benchmarks)
-                img_detail_rpm = plot_rpm_vs_time(best_accel_1, "RPM vs Time", benchmarks=accel_benchmarks) if 'RPM' in best_accel_1['df'].columns else None
-                img_detail_gps = plot_gps_heatmap(best_accel_1, "Ubicación de la prueba")
-                
-                from utils.metrics_calculator import calculate_segments
-                segments = calculate_segments(best_accel_1['df'], best_accel_1['metrics']['start_idx'], accel_benchmarks)
-                bm = best_accel_1['metrics']
-                segments.append([f"0-{int(target_speed)}", f"{bm['time_s']:.2f}", f"{bm['dist_m']:.2f}", f"{bm['avg_acc']:.2f}", f"{int(bm['top_rpm'])}"])
-
-                imgs_detalle = []
-                if img_detail_gps: imgs_detalle.append({'bytes': img_detail_gps.getvalue()})
-                imgs_detalle.append({'bytes': img_detail_v.getvalue()})
-                if img_detail_rpm: imgs_detalle.append({'bytes': img_detail_rpm.getvalue()})
-                imgs_detalle.append({'bytes': img_detail_a.getvalue()})
-
-                sections.append({
-                    "title": f"Acceleration 0-{int(target_speed)} - Best Event ({primary['pilot']})",
-                    "images": imgs_detalle,
-                    "table_data": [["Segment (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]] + segments
-                })
-
-                preview_data["accel_data"] = {
-                    "top_3_events": best_accels_all,
-                    "segments": segments,
-                    "img_combined": img_combined.getvalue(),
-                    "img_detail_v": img_detail_v.getvalue(),
-                    "img_detail_a": img_detail_a.getvalue(),
-                    "img_detail_rpm": img_detail_rpm.getvalue() if img_detail_rpm else None,
-                    "img_detail_gps": img_detail_gps.getvalue() if img_detail_gps else None,
-                }
-            else:
-                preview_data["accel_data"] = {
-                    "top_3_events": best_accels_all,
-                    "img_combined": img_combined.getvalue(),
-                    "segments": []
-                }
+            preview_data["accel_data"] = {
+                "top_3_events": best_accels_all,
+                "segments": [],
+                "img_combined": img_combined.getvalue(),
+                "img_detail_v": None,
+                "img_detail_a": None,
+                "img_detail_rpm": None,
+                "img_detail_gps": None,
+            }
 
         # -- Secciones Recuperación --
         if best_recs_all:
-            img_combined_rec = plot_speed_comparison(best_recs_all, f"Acceleration 30-{int(target_speed)}, 40-{int(target_speed)}, 50-{int(target_speed)} - General Result")
+            img_combined_rec = plot_speed_comparison(best_recs_all, f"Acceleration 30-{int(target_speed)}, 40-{int(target_speed)}, 50-{int(target_speed)} - Comparison")
             
-            table_r = [["V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
+            table_r = [["Event", "V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Acc (m/s²)", "Top RPM"]]
             for ev in best_recs_all:
                 m = ev['metrics']
-                # Evitar prefijo duplicado en UI si es string custom
-                table_r.append([f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
-                                f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"])
+                table_r.append([
+                    ev.get('display_name', f"Event {ev.get('id', '')}"),
+                    f"{m['v_start']:.2f}",
+                    f"{m['v_final']:.2f}",
+                    f"{m['time_s']:.2f}",
+                    f"{m['dist_m']:.2f}",
+                    f"{m['avg_acc']:.2f}",
+                    f"{int(m['top_rpm'])}"
+                ])
 
             sections.append({
-                "title": f"Recovery - General Summary (up to {int(target_speed)} km/h)",
+                "title": f"Recovery - Comparison (up to {int(target_speed)} km/h)",
                 "images": [{'bytes': img_combined_rec.getvalue()}],
                 "table_data": table_r
             })
@@ -795,41 +783,6 @@ class AccelerationModule(BaseModule):
                 "summary_events": best_recs_all,
                 "bands": {}
             }
-
-            # Detalle recuperación (solo arch 1)
-            if primary['recovery_results']:
-                for g in [30, 40, 50]:
-                    if g in primary['recovery_results']:
-                        b = primary['recovery_results'][g]['best']
-                        img_v = plot_speed_comparison([b], f"Speed vs Time ({g}-{int(target_speed)})")
-                        img_a = plot_accel_vs_time(b, f"Acceleration vs Time ({g}-{int(target_speed)})")
-                        img_rpm = plot_rpm_vs_time(b, f"RPM vs Time ({g}-{int(target_speed)})") if 'RPM' in primary['df'].columns else None
-                        img_gps = plot_gps_heatmap(b, "Ubicación de la prueba")
-
-                        m = b['metrics']
-                        tab_b = [["V. Start", "V. End", "Time", "Distance", "Avg Acc", "Top RPM"],
-                                 [f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
-                                  f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"]]
-
-                        imgs = []
-                        if img_gps: imgs.append({'bytes': img_gps.getvalue()})
-                        imgs.append({'bytes': img_v.getvalue()})
-                        if img_rpm: imgs.append({'bytes': img_rpm.getvalue()})
-                        imgs.append({'bytes': img_a.getvalue()})
-
-                        sections.append({
-                            "title": f"Recovery {g}-{int(target_speed)} km/h - Best Event",
-                            "images": imgs,
-                            "table_data": tab_b
-                        })
-
-                        preview_data["recovery_data"]["bands"][g] = {
-                            "best_event": b,
-                            "img_v": img_v.getvalue(),
-                            "img_a": img_a.getvalue(),
-                            "img_rpm": img_rpm.getvalue() if img_rpm else None,
-                            "img_gps": img_gps.getvalue() if img_gps else None,
-                        }
 
         from ui.preview_window import PreviewWindow
 

@@ -32,6 +32,7 @@
   * El módulo de **Ascenso** (`climbing.py`) mantiene sus 2 filas fijas (*Solo Piloto* y *Con Pasajero*).
 * **Módulo de Comparación Multi-Archivo (`modules/`)**:
   * En modo **Comparación**, los módulos habilitan hasta 3 archivos para comparar pasadas superpuestas en las gráficas de previsualización.
+  * **Enfoque Exclusivo en Comparación:** Se eliminaron las gráficas de detalle individual sesgadas al Archivo 1, presentando únicamente las curvas comparativas superpuestas (`img_combined`) y las tablas de resultados consolidados de todas las motos/archivos analizados.
   * En Ascenso, se presenta una pantalla informativa de *"Módulo en construcción / Próximamente"*.
 * **Detección Inteligente de Nombres y Leyendas**:
   * El sistema identifica automáticamente qué variable cambia entre los archivos analizados para rotular las leyendas de las gráficas y la columna *C (Evento)* de las tablas resumen:

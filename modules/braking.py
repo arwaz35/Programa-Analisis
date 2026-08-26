@@ -514,53 +514,32 @@ class BrakingModule(BaseModule):
                     best_all.append(best_ev)
 
             if best_all:
-                img_combined = plot_speed_comparison(best_all, f"Braking {from_speed}→0 - General Result")
+                img_combined = plot_speed_comparison(best_all, f"Braking {from_speed}→0 - Comparison")
+
+                table_b = [["Event", "V. Start (km/h)", "V. End (km/h)", "Time (s)", "Distance (m)", "Avg Decel (m/s²)", "Top RPM"]]
+                for ev in best_all:
+                    m = ev['metrics']
+                    table_b.append([
+                        ev.get('display_name', f"Event {ev.get('id', '')}"),
+                        f"{m['v_start']:.2f}",
+                        f"{m['v_final']:.2f}",
+                        f"{m['time_s']:.2f}",
+                        f"{m['dist_m']:.2f}",
+                        f"{m['avg_acc']:.2f}",
+                        f"{int(m['top_rpm'])}"
+                    ])
 
                 sections.append({
                     "title": f"Braking {from_speed}→0 km/h - Comparison",
                     "images": [{'bytes': img_combined.getvalue()}],
-                    "table_data": None
+                    "table_data": table_b
                 })
 
                 preview_data["braking_data"][from_speed] = {
                     "top_3_events": best_all,
                     "img_combined": img_combined.getvalue(),
+                    "best_event": None,
                 }
-
-                # Detalle solo del archivo primario
-                if from_speed in primary['braking_results']:
-                    best = primary['braking_results'][from_speed]['best']
-                    img_detail_v = plot_speed_detailed(best, "Speed vs Time")
-                    img_detail_a = plot_accel_vs_time(best, "Deceleration vs Time")
-                    img_detail_rpm = plot_rpm_vs_time(best, "RPM vs Time") if 'RPM' in primary['df'].columns else None
-                    img_detail_gps = plot_gps_heatmap(best, "Ubicación de la prueba")
-
-                    m = best['metrics']
-                    tab_b = [["V. Start", "V. End", "Time", "Distance", "Avg Decel", "Top RPM"],
-                             [f"{m['v_start']:.2f}", f"{m['v_final']:.2f}", f"{m['time_s']:.2f}",
-                              f"{m['dist_m']:.2f}", f"{m['avg_acc']:.2f}", f"{int(m['top_rpm'])}"]]
-
-                    imgs = []
-                    if img_detail_gps:
-                        imgs.append({'bytes': img_detail_gps.getvalue()})
-                    imgs.append({'bytes': img_detail_v.getvalue()})
-                    if img_detail_rpm:
-                        imgs.append({'bytes': img_detail_rpm.getvalue()})
-                    imgs.append({'bytes': img_detail_a.getvalue()})
-
-                    sections.append({
-                        "title": f"Braking {from_speed}→0 - Best Event",
-                        "images": imgs,
-                        "table_data": tab_b
-                    })
-
-                    preview_data["braking_data"][from_speed].update({
-                        "best_event": best,
-                        "img_detail_v": img_detail_v.getvalue(),
-                        "img_detail_a": img_detail_a.getvalue(),
-                        "img_detail_rpm": img_detail_rpm.getvalue() if img_detail_rpm else None,
-                        "img_detail_gps": img_detail_gps.getvalue() if img_detail_gps else None,
-                    })
 
         from ui.preview_window import PreviewWindow
 
